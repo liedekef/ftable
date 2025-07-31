@@ -3,11 +3,11 @@ What is fTable
 
 FTable is a clean, vanilla JavaScript rewrite of the popular `jTable` plugin, designed for modern web apps.
 
-✅ No dependencies
-✅ Dynamic forms & async fields
-✅ Localization
-✅ Responsive
-✅ MIT Licensed
+✅ No dependencies  
+✅ Dynamic forms & async fields  
+✅ Localization  
+✅ Responsive  
+✅ MIT Licensed  
 
 ## Screenshots
 [![A screenshot of fTable](https://raw.githubusercontent.com/liedekef/ftable/master/screenshot.png)](https://github.com/liedekef/ftable/)
@@ -16,14 +16,14 @@ FTable is a clean, vanilla JavaScript rewrite of the popular `jTable` plugin, de
 FTable is a clean, vanilla JavaScript rewrite of the popular `jTable` plugin, designed for modern web apps.
 
 ### Features
-✅ Create, Read, Update, Delete
-✅ Sorting, Paging, Filtering
-✅ Dynamic dependent fields
-✅ Ajax loading for data and options
-✅ Localization via JTable.setMessages(...)
-✅ Modal forms
-✅ CSV export, Print
-✅ User preferences (localStorage)
+✅ Create, Read, Update, Delete  
+✅ Sorting, Paging, Filtering  
+✅ Dynamic dependent fields  
+✅ Ajax loading for data and options  
+✅ Localization via JTable.setMessages(...)  
+✅ Modal forms  
+✅ CSV export, Print  
+✅ User preferences (localStorage)  
 
 ## Install
 
@@ -74,5 +74,4 @@ const table = new FTable('#table', {
 ```
 
 ## Notes
-========
 See the wiki for documentation, demos, themes and more...
