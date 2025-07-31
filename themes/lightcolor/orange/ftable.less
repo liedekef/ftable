@@ -1,0 +1,88 @@
+﻿/* fTable light color theme - Orange
+ */
+
+@import "../ftable_lightcolor_base.less";
+
+@theme-folder: 'orange';
+
+.ftable_lightcolor_base(@theme-folder);
+
+div.ftable-main-container
+{
+    div.ftable-title
+    {
+        .vertical-gradient(#ffa366,#da5700);
+        border-color: #804620;
+
+        div.ftable-title-text
+        {
+            .text-shadow(0 1px 0 #666);
+            color: #fff;
+        }
+						
+		div.ftable-toolbar
+		{
+			span.ftable-toolbar-item
+			{
+				color: white;
+
+				&.ftable-toolbar-item-hover
+				{
+					background-color: #c45206;
+				}
+			}
+		}
+    }
+
+    table.ftable
+    {
+        tbody
+        {
+            > tr
+            {
+				@highlight-color:#F36301;
+
+                &.ftable-row-selected,
+                &.ftable-row-selected:hover
+                {
+                    background-color: @highlight-color;
+                }
+
+                &.ftable-row-created,
+                &.ftable-row-updated,
+                &.ftable-row-deleting
+                {
+                    background-color: @highlight-color;
+                }
+            }
+        }
+    }
+
+    div.ftable-bottom-panel
+    {
+        .ftable-page-list
+        {
+            .ftable-page-number-active,.ftable-page-number-active:hover
+            {
+				@bgcolor: #f36301;
+
+                background-color: @bgcolor;
+                border-color: @bgcolor - #222;
+            }
+        }
+
+        span.ftable-add-record
+        {
+            a
+            {
+                color: #cc5200;
+            }
+        }
+    }
+}
+
+div.ftable-busy-message
+{
+    border-color: #a14100;
+    background-color: #f36301;
+}

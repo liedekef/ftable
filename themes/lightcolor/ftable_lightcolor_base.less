@@ -1,0 +1,337 @@
+﻿@import "../ftable_theme_base.less";
+
+.ftable_lightcolor_base( @theme-folder )
+{
+    @defaultFontFamily: Verdana, Arial, Helvetica, sans-serif;
+    @defaultFontSize: 1em;
+
+    .default-font(@size: @defaultFontSize)
+    {
+        font-family: @defaultFontFamily;
+        font-size: @defaultFontSize;
+        font-weight: 400;
+    }
+
+    .ftable_theme_base;
+
+    div.ftable-main-container
+    {
+        .default-font;
+        color: #222;
+
+        div.ftable-title
+        {
+            .border-radius(3px 3px 0 0);
+            position: relative;
+            line-height: 34px;
+            box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.5);
+            padding-left: 10px;
+            border: 1px solid;
+
+            div.ftable-title-text
+            {
+                font-weight: bold;
+            }
+
+            .ftable-close-button
+            {
+                .dock(right, 6px);
+                .opacity(0.8);
+                background: url('close.png') no-repeat;
+                width: 22px;
+                height: 22px;
+
+                &:hover
+                {
+                    .opacity(1);
+                }
+            }
+
+			// Toolbar -------------------------------------------------------------
+
+			div.ftable-toolbar
+			{
+				.dock(bottom-right);
+				line-height:26px;
+
+				span.ftable-toolbar-item
+				{
+					&.ftable-toolbar-item-add-record
+					{
+						span.ftable-toolbar-item-icon
+						{
+							background-image: url('add.png');
+						}
+					}
+				}
+			}
+        }
+
+        table.ftable
+        {
+            border-collapse: collapse;
+            border-spacing: 0;
+            border-top: 0px;
+            border-right: 1px solid #C8C8C8;
+            border-bottom: 1px solid #C8C8C8;
+            border-left: 1px solid #C8C8C8;
+
+            thead
+            {
+                background: url('bg-thead.png') repeat-x scroll top left #dddddd;
+                border-bottom: 1px solid #C8C8C8;
+
+                th
+                {
+                    border-left: 1px solid #fff;
+                    border-right: 1px solid #C8C8C8;
+
+                    &:first-child
+                    {
+                        border-left: none;
+                    }
+
+                    &th:last-child
+                    {
+                        border-right: none;
+                    }
+
+                    &.ftable-column-header
+                    {
+                        div.ftable-column-header-container
+                        {
+                            height: 20px;
+
+                            div.ftable-column-resize-handler
+                            {
+                            }
+                        }
+
+                        span.ftable-column-header-text
+                        {
+                            margin-top: 3px;
+                        }
+                    }
+
+                    &.ftable-column-header-select
+                    {
+						padding: 5px;
+                    }
+
+                    &.ftable-column-header-sortable div.ftable-column-header-container
+                    {
+                        background: url('column-sortable.png') no-repeat right;
+                    }
+
+                    &.ftable-column-header-sorted-asc div.ftable-column-header-container
+                    {
+                        background: url('column-asc.png') no-repeat right;
+                    }
+
+                    &.ftable-column-header-sorted-desc div.ftable-column-header-container
+                    {
+                        background: url('column-desc.png') no-repeat right;
+                    }
+                }
+            }
+
+            tbody
+            {
+                > tr
+                {
+                    padding: 2px;
+                    background: #f8f8f8;
+                    height: 30px;
+
+					> td
+                    {
+                        padding: 5px;
+                        border-left: 1px dotted #bebebe;
+
+                        &:first-child
+                        {
+                            border-left: none;
+                        }
+
+                        .ftable-edit-command-button
+                        {
+                            background: url('edit.png') no-repeat;
+                            width: 16px;
+                            height: 16px;
+                        }
+
+                        .ftable-clone-command-button
+                        {
+                            background: url('clone.png') no-repeat;
+                            width: 16px;
+                            height: 16px;
+                        }
+
+                        .ftable-delete-command-button
+                        {
+                            background: url('delete.png') no-repeat;
+                            width: 16px;
+                            height: 16px;
+                        }
+                    }
+
+                    &.ftable-row-even
+                    {
+                        background: #f0f0f0;
+                    }
+
+                    &:hover
+                    {
+                        background: #e8eaef;
+                    }
+
+                    &.ftable-row-selected
+                    {
+                        .text-shadow(0 1px 0 #333);
+                        color: #FCFCFC;
+                    }
+
+                    &.ftable-child-row
+                    {
+                        > td
+                        {
+							background-color: #bbb;
+							padding: 2px 1px 2px 2px;
+
+                            .ftable
+                            {
+                                border: none;
+                                border-bottom: 1px solid #C8C8C8;
+                            }
+
+                            .ftable-title,
+                            .ftable-bottom-panel
+                            {
+                                .border-radius(0px);
+                                border: none;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        div.ftable-bottom-panel
+        {
+            .border-radius(0px 0px 3px 3px);
+            padding: 1px;
+            background: #fff;
+            border: 1px solid #C8C8C8;
+            border-top: none;
+            min-height: 24px;
+            line-height: 16px;
+            font-size: 0.9em;
+
+            div.ftable-right-area
+            {
+                padding: 2px;
+            }
+
+            .ftable-page-list
+            {
+                margin: 2px;
+
+                .ftable-page-number,
+                .ftable-page-number-space,
+                .ftable-page-number-first,
+                .ftable-page-number-last,
+                .ftable-page-number-previous,
+                .ftable-page-number-next,
+                .ftable-page-number-active
+                {
+                    .text-shadow(0 1px 0 white);
+                    background-color: #ebebeb;
+                    border-style: solid;
+                    border-width: 1px;
+                    border-color: #ffffff #b5b5b5 #b5b5b5 #ffffff;
+                    padding: 2px 5px;
+                }
+
+                    .ftable-page-number:hover,
+                    .ftable-page-number-first:hover,
+                    .ftable-page-number-last:hover,
+                    .ftable-page-number-previous:hover,
+                    .ftable-page-number-next:hover
+                    {
+                        background-color: #ddd;
+                    }
+
+                .ftable-page-number-active
+                {
+                    .text-shadow(0 1px 0 #666);
+                    color: #FCFCFC;
+                }
+
+				.ftable-page-number-disabled
+				{
+					.opacity(0.5);
+
+					&.ftable-page-number-active
+					{
+						.opacity(1);
+					}
+
+					&:hover
+					{
+						background-color: #ebebeb;
+					}
+				}
+            }
+
+			.ftable-page-info
+            {
+				display: inline-block;
+                padding: 4px;
+            }
+
+            span.ftable-add-record
+            {
+                margin: 3px;
+
+                a
+                {
+                    font-weight: bold;
+                    text-decoration: none;
+
+                    &:hover
+                    {
+                        text-decoration: underline;
+                    }
+                }
+            }
+        }
+
+        div.ftable-column-selection-container
+        {
+            .border-radius(3px);
+            .box-shadow(2px 2px 4px rgba(50, 51, 50, 0.75));
+        }
+    }
+
+    form.ftable-dialog-form
+    {
+        .default-font(0.9em);
+
+        div.ftable-input-label
+        {
+            font-weight: bold;
+        }
+    }
+
+    div.ftable-busy-message
+    {
+        .text-shadow(0 1px 0 #333);
+        .border-radius(3px);
+        .box-shadow(2px 2px 4px rgba(50, 51, 50, 0.75));
+        color: #fff;
+        border: 1px solid;
+        padding: 3px 5px 5px 27px;
+        background: url('@{theme-folder}/loading.gif') no-repeat;
+        background-position: 5px;
+    }
+}

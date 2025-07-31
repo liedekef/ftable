@@ -1,0 +1,450 @@
+﻿// fTable Metro Style Theme Base
+
+// Imports ////////////////////////////////////////////////////////////////////
+
+@import "../ftable_theme_base.less";
+
+// Font definitions ///////////////////////////////////////////////////////////
+
+@font-face
+{
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: 300;
+    src: local('Open Sans Light'), local('OpenSans-Light'), url(https://themes.googleusercontent.com/static/fonts/opensans/v6/DXI1ORHCpsQm3Vp6mXoaTRa1RVmPjeKy21_GQJaLlJI.woff) format('woff');
+}
+
+@font-face
+{
+    font-family: 'Open Sans';
+    font-style: italic;
+    font-weight: 300;
+    src: local('Open Sans Light Italic'), local('OpenSansLight-Italic'), url(https://themes.googleusercontent.com/static/fonts/opensans/v6/PRmiXeptR36kaC0GEAetxrsuoFAk0leveMLeqYtnfAY.woff) format('woff');
+}
+
+@font-face
+{
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Open Sans'), local('OpenSans'), url(https://themes.googleusercontent.com/static/fonts/opensans/v6/u-WUoqrET9fUeobQW7jkRT8E0i7KZn-EPnyo3HZu7kw.woff) format('woff');
+}
+
+@font-face
+{
+    font-family: 'Open Sans';
+    font-style: italic;
+    font-weight: 400;
+    src: local('Open Sans Italic'), local('OpenSans-Italic'), url(https://themes.googleusercontent.com/static/fonts/opensans/v6/xjAJXh38I15wypJXxuGMBtIh4imgI8P11RFo6YPCPC0.woff) format('woff');
+}
+
+@font-face
+{
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: 600;
+    src: local('Open Sans Semibold'), local('OpenSans-Semibold'), url(https://themes.googleusercontent.com/static/fonts/opensans/v6/MTP_ySUJH_bn48VBG8sNSha1RVmPjeKy21_GQJaLlJI.woff) format('woff');
+}
+
+@font-face
+{
+    font-family: 'Open Sans';
+    font-style: italic;
+    font-weight: 600;
+    src: local('Open Sans Semibold Italic'), local('OpenSans-SemiboldItalic'), url(https://themes.googleusercontent.com/static/fonts/opensans/v6/PRmiXeptR36kaC0GEAetxmWeb5PoA5ztb49yLyUzH1A.woff) format('woff');
+}
+
+@font-face
+{
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: 700;
+    src: local('Open Sans Bold'), local('OpenSans-Bold'), url(https://themes.googleusercontent.com/static/fonts/opensans/v6/k3k702ZOKiLJc3WVjuplzBa1RVmPjeKy21_GQJaLlJI.woff) format('woff');
+}
+
+@font-face
+{
+    font-family: 'Open Sans';
+    font-style: italic;
+    font-weight: 700;
+    src: local('Open Sans Bold Italic'), local('OpenSans-BoldItalic'), url(https://themes.googleusercontent.com/static/fonts/opensans/v6/PRmiXeptR36kaC0GEAetxoUt79146ZFaIJxILcpzmhI.woff) format('woff');
+}
+
+// JTABLE THEME - METRO STYLE BASE ////////////////////////////////////////////
+
+.ftable_metro_base( @theme-folder, @main-theme-color )
+{
+    .ftable_theme_base; //Inherit from ftable_theme_base
+
+    // Variables //////////////////////////////////////////////////////////////
+
+    @default-font-family: 'Segoe UI Semilight', 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
+
+    @default-font-size: 14px;
+	@default-line-height: 1.3;
+
+    @table-title-font-size: @default-font-size + 5px;
+    @table-header-font-size: @default-font-size + 1px;
+	@table-bottom-panel-font-size: @default-font-size - 1px;
+
+    @table-title-background: @main-theme-color - #222;
+    @table-header-background: @main-theme-color;
+	@table-bottom-panel-background: @main-theme-color - #111;
+
+    // Mixings //////////////////////////////////////////////////////////////////
+
+    .font-light(@size: @default-font-size)
+    {
+        font-family: @default-font-family;
+        font-weight: 300;
+        font-size: @size;
+    }
+
+    .font-normal(@size: @default-font-size)
+    {
+        font-family: @default-font-family;
+        font-weight: 400;
+        font-size: @size;
+    }
+
+    .font-semi-bold(@size: @default-font-size)
+    {
+        font-family: @default-font-family;
+        font-weight: 600;
+        font-size: @size;
+    }
+
+    .font-bold(@size: @default-font-size)
+    {
+        font-family: @default-font-family;
+        font-weight: 700;
+        font-size: @size;
+    }
+    
+	// Styles ///////////////////////////////////////////////////////////////////
+     
+	div.ftable-main-container
+    {
+        .font-light();
+        background: #fff;
+		line-height: @default-line-height;
+
+		// Title ---------------------------------------------------------------
+
+        div.ftable-title
+        {
+            background-color: @table-title-background;
+            padding-left: 10px;			
+
+            div.ftable-title-text
+            {
+                .font-light(@table-title-font-size);
+                line-height: @table-title-font-size + 15px;
+                color: #fff;
+            }
+
+            .ftable-close-button
+            {
+                .dock(right, 8px);
+                .opacity(0.5);
+                background: url('close.png') no-repeat;
+                width: 16px;
+                height: 16px;
+
+                &:hover
+                {
+                    .opacity(1);
+                }
+            }
+
+			// Toolbar -------------------------------------------------------------
+
+			div.ftable-toolbar
+			{
+				.dock(bottom-right);
+
+				span.ftable-toolbar-item
+				{
+					background-color: @table-title-background + #0A0A0A;
+					color: white;
+
+					&.ftable-toolbar-item-add-record
+					{
+						span.ftable-toolbar-item-icon
+						{
+							background-image: url('add.png');
+						}
+					}
+
+					&.ftable-toolbar-item-hover
+					{
+						background-color: @main-theme-color - #111;
+						padding-bottom: 6px;
+					}
+				}
+			}
+        }
+
+		// Table ---------------------------------------------------------------
+
+        table.ftable
+        {
+            border: 1px solid @main-theme-color;
+            border-collapse: collapse;
+            border-spacing: 0;
+
+            > thead
+            {
+                background-color: @table-header-background;
+
+                th
+                {
+                    .font-light(@table-header-font-size);
+                    color: #fff;
+
+                    &.ftable-column-header
+                    {
+                        @header-container-height: 24px;
+
+                        div.ftable-column-header-container
+                        {
+                            height: @header-container-height;
+                            margin-left: 4px;
+
+                            div.ftable-column-resize-handler
+                            {
+                                height: @header-container-height + 4px;
+                            }
+
+                            span.ftable-column-header-text
+                            {
+                                margin-top: 2px;
+                            }
+                        }
+                    }
+
+                    &.ftable-column-header-sortable
+                    {
+                        div.ftable-column-header-container
+                        {
+                            background: url('column-sortable.png') no-repeat right;
+                        }
+                    }
+
+                    &.ftable-column-header-sorted-asc
+                    {
+                        div.ftable-column-header-container
+                        {
+                            background: url('column-asc.png') no-repeat right;
+                        }
+                    }
+
+                    &.ftable-column-header-sorted-desc
+                    {
+                        div.ftable-column-header-container
+                        {
+                            background: url('column-desc.png') no-repeat right;
+                        }
+                    }
+                }
+            }
+
+            > tbody
+            {
+                > tr
+                {
+                    background-color: #fff;
+
+					> td
+					{
+						border: 1px solid #ddd;
+					}
+
+					&.ftable-data-row
+					{
+						> td
+						{
+							padding: 4px;
+
+							> .ftable-edit-command-button
+							{
+								background: url('edit.png') no-repeat;
+								width: 16px;
+								height: 16px;
+								opacity: 0.4;
+
+								&:hover
+								{
+									opacity: 0.8;
+								}
+							}
+
+							> .ftable-clone-command-button
+							{
+								background: url('clone.png') no-repeat;
+								width: 16px;
+								height: 16px;
+								opacity: 0.4;
+
+								&:hover
+								{
+									opacity: 0.8;
+								}
+							}
+
+							> .ftable-delete-command-button
+							{
+								background: url('delete.png') no-repeat;
+								width: 16px;
+								height: 16px;
+								opacity: 0.4;
+
+								&:hover
+								{
+									opacity: 0.8;
+								}
+							}
+						}
+					}
+
+					&.ftable-row-even
+					{
+						background-color: #f9f9f9;
+					}
+
+					&:hover
+					{
+						background: #e8eaef;
+					}
+
+                    &.ftable-row-selected
+                    {
+                        color: #fff;
+                        background-color: @main-theme-color + #222;
+                    }
+
+                    &.ftable-row-created
+                    {
+                        background-color: @main-theme-color + #333;
+                    }
+
+                    &.ftable-row-updated
+                    {
+                        background-color: @main-theme-color + #333;
+                    }
+
+                    &.ftable-row-deleting
+                    {
+                        background-color: #e51400;
+                        color: #fff;
+                    }
+
+                    &.ftable-child-row
+                    {
+                        > td
+                        {
+                            padding: 2px;
+                            background-color: #fff;
+                        }
+                    }
+                }
+            }
+        }
+
+		// Bottom panel --------------------------------------------------------------
+
+        div.ftable-bottom-panel
+        {
+			@page-number-margin: 1px;
+			@page-number-padding-vertical: 2px;
+			@page-number-padding-horizontal: 5px;
+
+			@bottom-panel-height: (@table-bottom-panel-font-size * @default-line-height) + (@page-number-margin * 2) + (@page-number-padding-vertical * 2);
+
+            background-color: @table-bottom-panel-background;
+            color: #fff;
+            min-height: @bottom-panel-height;
+            font-size: @table-bottom-panel-font-size;
+            border: 1px solid @main-theme-color;
+            border-top: none;
+
+            .ftable-page-list
+            {
+                margin: 1px 0px 0px 0px;
+
+                .ftable-page-number,
+                .ftable-page-number-space,
+                .ftable-page-number-first,
+                .ftable-page-number-last,
+                .ftable-page-number-previous,
+                .ftable-page-number-next,
+                .ftable-page-number-active
+                {
+                    background-color: @table-bottom-panel-background + #111;
+                    margin: @page-number-margin;
+                    padding: @page-number-padding-vertical @page-number-padding-horizontal;
+                    color: #fff;
+                }
+
+                    .ftable-page-number:hover,
+                    .ftable-page-number-first:hover,
+                    .ftable-page-number-last:hover,
+                    .ftable-page-number-previous:hover,
+                    .ftable-page-number-next:hover
+                    {
+                        background-color: @table-bottom-panel-background + #333;
+                    }
+
+                .ftable-page-number-disabled
+                {					
+					.opacity(0.75);
+                    color: #ccc;
+                    cursor: default;
+
+					&:hover
+					{
+						background-color: @table-bottom-panel-background + #111;
+					}
+                }
+            }
+
+			span.ftable-page-info
+            {
+				display: inline-block;
+				padding: 4px;				
+            }
+
+			span.ftable-page-size-change
+            {
+				display:inline-block;
+                padding:2px 0px 2px 0px;
+            }
+
+			span.ftable-goto-page
+			{
+				display:inline-block;
+                padding:2px 0px 2px 0px;
+			}
+        }
+    }
+
+	// Forms -------------------------------------------------------------------
+
+    form.ftable-dialog-form
+    {
+        .font-normal();
+    }
+
+	// Busy message-------------------------------------------------------------
+
+    div.ftable-busy-message
+    {
+        .font-light(16px);
+        border: 1px solid #fff;
+        padding: 5px 5px 5px 58px;
+        color: #fff;
+        background: url('@{theme-folder}/loading.gif') no-repeat;
+        background-color: @main-theme-color - #222;
+        background-position: 8px;
+    }
+}

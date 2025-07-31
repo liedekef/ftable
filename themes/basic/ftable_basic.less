@@ -1,0 +1,89 @@
+﻿/* These file is a start point for who wants to create a fully custom
+ * theme for fTable. ftable_theme_base.less (or css) file is needed
+ * for functionality of fTable. This file does not add any color or shape
+ * modifications. It just shows how to set icons. You can change them too.
+ */
+
+@import "../ftable_theme_base.less";
+
+.ftable_theme_base;
+
+div.ftable-main-container
+{
+    div.ftable-title
+    {
+        div.ftable-title-text
+        {
+			font-size: 16px;
+			font-weight: bold;
+        }
+
+        .ftable-close-button
+        {
+            background: url('close.png') no-repeat;
+            width: 16px;
+            height: 16px;
+        }
+    }
+
+    table.ftable
+    {
+        thead
+        {
+            th
+            {
+                &.ftable-column-header-sortable div.ftable-column-header-container
+                {
+                    background: url('column-sortable.png') no-repeat right;
+                }
+
+                &.ftable-column-header-sorted-asc div.ftable-column-header-container
+                {
+                    background: url('column-asc.png') no-repeat right;
+                }
+
+                &.ftable-column-header-sorted-desc div.ftable-column-header-container
+                {
+                    background: url('column-desc.png') no-repeat right;
+                }
+            }
+        }
+
+        tbody
+        {
+            > tr
+            {
+                > td
+                {
+                    .ftable-edit-command-button
+                    {
+                        background: url('edit.png') no-repeat;
+                        width: 16px;
+                        height: 16px;
+                    }
+
+                    .ftable-clone-command-button
+                    {
+                        background: url('clone.png') no-repeat;
+                        width: 16px;
+                        height: 16px;
+                    }
+
+                    .ftable-delete-command-button
+                    {
+                        background: url('delete.png') no-repeat;
+                        width: 16px;
+                        height: 16px;
+                    }
+                }
+            }
+        }
+    }
+}
+
+div.ftable-busy-message
+{
+    color: #000;
+    background-color: #ddd;
+    font-size: 1.25em;
+}
