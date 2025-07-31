@@ -1785,6 +1785,10 @@ class FTable extends FTableEventEmitter {
                 parent: th
             });
 
+            if (field.tooltip) {
+                container.setAttribute('title', field.tooltip);
+            }
+
             FTableDOMHelper.create('span', {
                 className: 'ftable-column-header-text',
                 text: field.title || fieldName,
@@ -2621,6 +2625,11 @@ class FTable extends FTableEventEmitter {
                 parent: this.elements.toolbarDiv
             });
 
+            // Add title/tooltip if provided
+            if (item.tooltip) {
+                button.setAttribute('title', item.tooltip);
+            }
+
             // Add icon if provided
             if (item.icon) {
                 const img = FTableDOMHelper.create('img', {
@@ -3145,7 +3154,7 @@ class FTable extends FTableEventEmitter {
                 if (result.Message) {
                     this.showInfo(result.Message);
                 }
-                this.emit('recordUpdated', { record: result.Record || formData });
+                this.emit('recordUpdated', { record: result.Record || formData, row: this.currentEditingRow });
             } else {
                 this.showError(result.Message || 'Update failed');
             }
