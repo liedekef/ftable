@@ -1335,7 +1335,7 @@ class FTable extends FTableEventEmitter {
         
         this.options = this.mergeOptions(options);
         this.logger = new FTableLogger(this.options.logLevel);
-        this.userPrefs = new FTableUserPreferences('', this.options.saveFTableUserPreferencesMethod);
+        this.userPrefs = new FTableUserPreferences('', this.options.saveUserPreferencesMethod);
         this.formBuilder = new FTableFormBuilder(this.options, this);
         
         this.state = {
@@ -1368,12 +1368,13 @@ class FTable extends FTableEventEmitter {
             animationsEnabled: true,
             loadingAnimationDelay: 1000,
             defaultDateFormat: 'yyyy-mm-dd',
-            saveFTableUserPreferences: true,
-            saveFTableUserPreferencesMethod: 'localStorage',
+            saveUserPreferences: true,
+            saveUserPreferencesMethod: 'localStorage',
             defaultSorting: '',
             
             // Paging
             paging: false,
+            pageList: 'normal',
             pageSize: 10,
             gotoPageArea: 'combobox',
             
@@ -1748,9 +1749,9 @@ class FTable extends FTableEventEmitter {
         });
 
         // Add selecting column if enabled
-        if (this.options.selecting) {
+        if (this.options.selecting && this.options.selectingCheckboxes) {
             const selectHeader = FTableDOMHelper.create('th', {
-                className: 'ftable-column-header ftable-column-header-select',
+                className: `ftable-column-header ftable-column-header-select ${field.listClass || ''} ${field.listClassHeader || ''}`,
                 parent: headerRow
             });
 
@@ -1849,7 +1850,7 @@ class FTable extends FTableEventEmitter {
         });
 
         // Add empty cell for selecting column if enabled
-        if (this.options.selecting) {
+        if (this.options.selecting && this.options.selectingCheckboxes) {
             FTableDOMHelper.create('th', { parent: searchRow });
         }
 
@@ -2135,14 +2136,14 @@ class FTable extends FTableEventEmitter {
             document.removeEventListener('mouseup', handleMouseUp);
             
             // Save column width preference if enabled
-            if (this.options.saveFTableUserPreferences) {
+            if (this.options.saveUserPreferences) {
                 this.saveColumnSettings();
             }
         };
     }
 
     saveColumnSettings() {
-        if (!this.options.saveFTableUserPreferences) return;
+        if (!this.options.saveUserPreferences) return;
         
         const settings = {};
         this.columnList.forEach(fieldName => {
@@ -2160,7 +2161,7 @@ class FTable extends FTableEventEmitter {
     }
 
     saveState() {
-        if (!this.options.saveFTableUserPreferences) return;
+        if (!this.options.saveUserPreferences) return;
 
         const state = {
             sorting: this.state.sorting,
@@ -2171,7 +2172,7 @@ class FTable extends FTableEventEmitter {
     }
 
     loadColumnSettings() {
-        if (!this.options.saveFTableUserPreferences) return;
+        if (!this.options.saveUserPreferences) return;
         
         const settingsJson = this.userPrefs.get('column-settings');
         if (!settingsJson) return;
@@ -2191,7 +2192,7 @@ class FTable extends FTableEventEmitter {
     }
 
     loadState() {
-        if (!this.options.saveFTableUserPreferences) return;
+        if (!this.options.saveUserPreferences) return;
 
         const stateJson = this.userPrefs.get('table-state');
         if (!stateJson) return;
@@ -2692,12 +2693,12 @@ class FTable extends FTableEventEmitter {
     }
 
     setupFTableUserPreferences() {
-        if (this.options.saveFTableUserPreferences) {
+        if (this.options.saveUserPreferences) {
             const prefix = this.userPrefs.generatePrefix(
                 this.options.tableId || '',
                 this.fieldList
             );
-            this.userPrefs = new FTableUserPreferences(prefix, this.options.saveFTableUserPreferencesMethod);
+            this.userPrefs = new FTableUserPreferences(prefix, this.options.saveUserPreferencesMethod);
             
             // Load saved column settings
             this.loadState();
@@ -2869,7 +2870,7 @@ class FTable extends FTableEventEmitter {
         row.recordData = record;
 
         // Add selecting checkbox if enabled
-        if (this.options.selecting) {
+        if (this.options.selecting && this.options.selectingCheckboxes) {
             this.addSelectingCell(row);
         }
 
@@ -3537,27 +3538,29 @@ class FTable extends FTableEventEmitter {
         this.createPageButton('&lsaquo;', this.state.currentPage - 1, this.state.currentPage === 1, 'ftable-page-number-previous');
 
         // Page numbers
-        const pageNumbers = this.calculatePageNumbers(totalPages);
-        let lastNumber = 0;
-        
-        pageNumbers.forEach(pageNum => {
-            if (pageNum - lastNumber > 1) {
-                FTableDOMHelper.create('span', {
-                    className: 'ftable-page-number-space',
-                    text: '...',
-                    parent: this.elements.pagingListArea
-                });
-            }
-            
-            this.createPageButton(
-                pageNum.toString(), 
-                pageNum, 
-                false, 
-                pageNum === this.state.currentPage ? 'ftable-page-number ftable-page-number-active' : 'ftable-page-number'
-            );
-            
-            lastNumber = pageNum;
-        });
+        if (this.options.pageList == 'normal') {
+            const pageNumbers = this.calculatePageNumbers(totalPages);
+            let lastNumber = 0;
+
+            pageNumbers.forEach(pageNum => {
+                if (pageNum - lastNumber > 1) {
+                    FTableDOMHelper.create('span', {
+                        className: 'ftable-page-number-space',
+                        text: '...',
+                        parent: this.elements.pagingListArea
+                    });
+                }
+
+                this.createPageButton(
+                    pageNum.toString(), 
+                    pageNum, 
+                    false, 
+                    pageNum === this.state.currentPage ? 'ftable-page-number ftable-page-number-active' : 'ftable-page-number'
+                );
+
+                lastNumber = pageNum;
+            });
+        }
 
         // Next and Last buttons
         this.createPageButton('&rsaquo;', this.state.currentPage + 1, this.state.currentPage >= totalPages, 'ftable-page-number-next');
@@ -3965,7 +3968,7 @@ class FTable extends FTableEventEmitter {
         if (columnIndex >= 0) {
             // Calculate actual column index (accounting for selecting column)
             let actualIndex = columnIndex + 1; // CSS nth-child is 1-based
-            if (this.options.selecting) {
+            if (this.options.selecting && this.options.selectingCheckboxes) {
                 actualIndex += 1; // Account for selecting column
             }
             
@@ -3982,7 +3985,7 @@ class FTable extends FTableEventEmitter {
         }
 
         // Save column settings
-        if (this.options.saveFTableUserPreferences) {
+        if (this.options.saveUserPreferences) {
             this.saveColumnSettings();
             this.saveState(); // sorting might affect state
         }
@@ -4178,27 +4181,6 @@ class FTable extends FTableEventEmitter {
                     break;
             }
         });
-    }
-
-    // Performance optimization for large datasets
-    enableVirtualScrolling(options = {}) {
-        const virtualOptions = {
-            rowHeight: 40,
-            overscan: 5,
-            ...options
-        };
-
-        // This would implement virtual scrolling for performance with large datasets
-        // Simplified version - full implementation would be more complex
-        this.virtualScrolling = {
-            enabled: true,
-            ...virtualOptions,
-            visibleRange: { start: 0, end: 0 },
-            scrollContainer: null
-        };
-
-        // Replace table body with virtual scroll container
-        // Implementation would calculate visible rows and only render those
     }
 
     // Real-time updates via WebSocket
