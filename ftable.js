@@ -1371,10 +1371,11 @@ class FTable extends FTableEventEmitter {
             fields: {},
             animationsEnabled: true,
             loadingAnimationDelay: 1000,
-            defaultDateFormat: 'yyyy-mm-dd',
+            defaultDateLocale: '',
             saveUserPreferences: true,
             saveUserPreferencesMethod: 'localStorage',
             defaultSorting: '',
+            tableReset: false,
             
             // Paging
             paging: false,
@@ -3015,7 +3016,11 @@ class FTable extends FTableEventEmitter {
         }
 
         if (field.type === 'date' && value) {
-            return this.formatDate(value, field.dateFormat);
+            return this.formatDate(value, field.dateLocale || this.options.defaultDateLocale );
+        }
+
+        if (field.type === 'datetime-local' && value) {
+            return this.formatDateTime(value, field.dateLocale || this.options.defaultDateLocale );
         }
 
         if (field.type === 'checkbox') {
@@ -3030,18 +3035,47 @@ class FTable extends FTableEventEmitter {
         return value || '';
     }
 
+    _parseDate(dateString) {
+        if (dateString.includes('Date')) { // Format: /Date(1320259705710)/
+            return new Date(
+                parseInt(dateString.substr(6), 10)
+            );
+        } else if (dateString.length == 10) { // Format: 2011-01-01
+            return new Date(
+                parseInt(dateString.substr(0, 4), 10),
+                parseInt(dateString.substr(5, 2), 10) - 1,
+                parseInt(dateString.substr(8, 2), 10)
+            );
+        } else if (dateString.length == 19) { // Format: 2011-01-01 20:32:42
+            return new Date(
+                parseInt(dateString.substr(0, 4), 10),
+                parseInt(dateString.substr(5, 2), 10) - 1,
+                parseInt(dateString.substr(8, 2), 10),
+                parseInt(dateString.substr(11, 2), 10),
+                parseInt(dateString.substr(14, 2), 10),
+                parseInt(dateString.substr(17, 2), 10)
+            );
+        } else {
+            return new Date(dateString);
+        }
+    }
+
     formatDate(dateValue, format) {
         if (!dateValue) return '';
-        
-        const date = new Date(dateValue);
+
+        const date = this._parseDate(dateValue);
         if (isNaN(date.getTime())) return dateValue;
 
-        // Simple date formatting - could be enhanced with a proper date library
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        
-        return `${year}-${month}-${day}`;
+        return date.toLocaleDateString(format,{ year: "numeric", month: "2-digit", day: "2-digit" });
+    }
+
+    formatDateTime(dateValue, format) {
+        if (!dateValue) return '';
+
+        const date = this._parseDate(dateValue);
+        if (isNaN(date.getTime())) return dateValue;
+
+        return date.toLocaleString(format);
     }
 
     getCheckboxText(fieldName, value) {
