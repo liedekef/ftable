@@ -1,3 +1,6 @@
+= 1.1.2 (2025/08/01) =
+* support defaultDateLocale
+
 = 1.1.1 (2025/08/01) =
 * Correct build and include esm
 

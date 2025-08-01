@@ -980,21 +980,6 @@ class FTableFormBuilder {
         }
         attributes.name = name;
 
-        // Handle required attribute
-        if (field.required) {
-            attributes.required = 'required';
-        }
-
-        // Handle readonly attribute
-        if (field.readonly) {
-            attributes.readonly = 'readonly';
-        }
-
-        // Handle disabled attribute
-        if (field.disabled) {
-            attributes.disabled = 'disabled';
-        }
-
         const input = FTableDOMHelper.create('input', { attributes });
 
         // Prevent form submit on Enter, trigger change instead
@@ -1242,18 +1227,6 @@ class FTableFormBuilder {
         return wrapper;
     }
 
-    createDateInput(fieldName, field, value) {
-        return FTableDOMHelper.create('input', {
-            attributes: {
-                type: 'date',
-                name: fieldName,
-                id: `Edit-${fieldName}`,
-                class: field.inputClass || '',
-                value: value || ''
-            }
-        });
-    }
-
     populateSelectOptions(select, options, selectedValue) {
         select.innerHTML = ''; // Clear existing options
 
@@ -1371,7 +1344,7 @@ class FTable extends FTableEventEmitter {
             fields: {},
             animationsEnabled: true,
             loadingAnimationDelay: 1000,
-            defaultDateLocale: '',
+            defaultDateLocale: 'en',
             saveUserPreferences: true,
             saveUserPreferencesMethod: 'localStorage',
             defaultSorting: '',
@@ -3016,11 +2989,11 @@ class FTable extends FTableEventEmitter {
         }
 
         if (field.type === 'date' && value) {
-            return this.formatDate(value, field.dateLocale || this.options.defaultDateLocale );
+            return this.formatDate(value, field.dateLocale || this.options.defaultDateLocale || 'en' );
         }
 
         if (field.type === 'datetime-local' && value) {
-            return this.formatDateTime(value, field.dateLocale || this.options.defaultDateLocale );
+            return this.formatDateTime(value, field.dateLocale || this.options.defaultDateLocale || 'en' );
         }
 
         if (field.type === 'checkbox') {
@@ -3064,18 +3037,24 @@ class FTable extends FTableEventEmitter {
         if (!dateValue) return '';
 
         const date = this._parseDate(dateValue);
-        if (isNaN(date.getTime())) return dateValue;
-
-        return date.toLocaleDateString(format,{ year: "numeric", month: "2-digit", day: "2-digit" });
+        try {
+            if (isNaN(date.getTime())) return dateValue;
+            return date.toLocaleDateString(format,{ year: "numeric", month: "2-digit", day: "2-digit" });
+        } catch {
+            return dateValue;
+        }
     }
 
     formatDateTime(dateValue, format) {
         if (!dateValue) return '';
 
         const date = this._parseDate(dateValue);
-        if (isNaN(date.getTime())) return dateValue;
-
-        return date.toLocaleString(format);
+        try {
+            if (isNaN(date.getTime())) return dateValue;
+            return date.toLocaleString(format);
+        } catch {
+            return dateValue;
+        }
     }
 
     getCheckboxText(fieldName, value) {
@@ -4095,55 +4074,6 @@ class FTable extends FTableEventEmitter {
                 this.setColumnVisibility(fieldName, true);
             }
         });
-    }
-
-    // Data validation
-    validateRecord(record, operation = 'create') {
-        const errors = [];
-
-        Object.entries(this.options.fields).forEach(([fieldName, field]) => {
-            const value = record[fieldName];
-            
-            // Required field validation
-            if (field.required && (!value || value.toString().trim() === '')) {
-                errors.push(`${field.title || fieldName} is required`);
-            }
-
-            // Type validation
-            if (value && field.validate && typeof field.validate === 'function') {
-                const validationResult = field.validate(value, record);
-                if (validationResult !== true) {
-                    errors.push(validationResult || `${field.title || fieldName} is invalid`);
-                }
-            }
-
-            // Built-in type validations
-            if (value) {
-                switch (field.type) {
-                    case 'email':
-                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                        if (!emailRegex.test(value)) {
-                            errors.push(`${field.title || fieldName} must be a valid email`);
-                        }
-                        break;
-                    case 'number':
-                        if (isNaN(value)) {
-                            errors.push(`${field.title || fieldName} must be a number`);
-                        }
-                        break;
-                    case 'date':
-                        if (isNaN(new Date(value).getTime())) {
-                            errors.push(`${field.title || fieldName} must be a valid date`);
-                        }
-                        break;
-                }
-            }
-        });
-
-        return {
-            isValid: errors.length === 0,
-            errors
-        };
     }
 
     // Advanced search functionality
