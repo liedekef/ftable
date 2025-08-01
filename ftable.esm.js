@@ -1886,6 +1886,7 @@ class FTable extends FTableEventEmitter {
                 if (!field.type && field.options) {
                     field.type = 'select';
                 }
+                const fieldSearchName = 'ftable-toolbarsearch-' + fieldName;
 
                 switch (field.type) {
                     case 'date':
@@ -1893,6 +1894,7 @@ class FTable extends FTableEventEmitter {
                             attributes: {
                                 type: 'date',
                                 'data-field-name': fieldName,
+                                id: fieldSearchName,
                                 class: 'ftable-toolbarsearch'
                             }
                         });
@@ -1907,6 +1909,7 @@ class FTable extends FTableEventEmitter {
                                     type: 'text',
                                     'data-field-name': fieldName,
                                     class: 'ftable-toolbarsearch',
+                                    id: fieldSearchName,
                                     placeholder: 'Search...'
                                 }
                             });
@@ -1922,6 +1925,7 @@ class FTable extends FTableEventEmitter {
                                     type: 'text',
                                     'data-field-name': fieldName,
                                     class: 'ftable-toolbarsearch',
+                                    id: fieldSearchName,
                                     placeholder: 'Search...'
                                 }
                             });
@@ -1934,6 +1938,7 @@ class FTable extends FTableEventEmitter {
                                 type: 'text',
                                 'data-field-name': fieldName,
                                 class: 'ftable-toolbarsearch',
+                                id: fieldSearchName,
                                 placeholder: 'Search...'
                             }
                         });
@@ -1986,9 +1991,11 @@ class FTable extends FTableEventEmitter {
     }
 
     async createSelectForSearch(fieldName, field, isCheckboxValues) {
+        const fieldSearchName = 'ftable-toolbarsearch-' + fieldName;
         const select = FTableDOMHelper.create('select', {
             attributes: {
                 'data-field-name': fieldName,
+                id: fieldSearchName,
                 class: 'ftable-toolbarsearch'
             }
         });
@@ -2382,9 +2389,6 @@ class FTable extends FTableEventEmitter {
         this.createToolbarButtons();
         this.createCustomToolbarItems();
         
-        // Handle window unload
-        this.handlePageUnload();
-        
         // Keyboard shortcuts
         this.bindKeyboardEvents();
         
@@ -2669,20 +2673,6 @@ class FTable extends FTableEventEmitter {
                 });
             }
         });
-    }
-
-    handlePageUnload() {
-        let unloadingPage = false;
-        
-        window.addEventListener('beforeunload', () => {
-            unloadingPage = true;
-        });
-        
-        window.addEventListener('unload', () => {
-            unloadingPage = false;
-        });
-        
-        this.unloadingPage = () => unloadingPage;
     }
 
     bindKeyboardEvents() {
