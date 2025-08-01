@@ -653,10 +653,6 @@ class FTableFormBuilder {
             }
         });
 
-        /*if (this.options.formCreated) {
-            this.options.formCreated(form, formType, record);
-        }*/
-
         // Set up dependency listeners after all fields are created
         this.setupDependencyListeners(form);
 
@@ -1351,6 +1347,7 @@ class FTable extends FTableEventEmitter {
         this.elements = {};
         this.modals = {};
         this.searchTimeout = null; // For debouncing
+        this.lastSortEvent = null;
         this._recalculatedOnce = false;
 
         // store it on the DOM too, so people can access it
@@ -1381,10 +1378,14 @@ class FTable extends FTableEventEmitter {
             // Sorting
             sorting: false,
             multiSorting: false,
+            multiSortingCtrlKey: true,
             
             // Selection
             selecting: false,
             multiselect: false,
+
+            // child tables
+            openChildAsAccordion: false,
 
             // Toolbar search
             toolbarsearch: false, // Enable/disable toolbar search row
@@ -1622,6 +1623,9 @@ class FTable extends FTableEventEmitter {
                 if (field.list === undefined) {
                     field.list = true;
                 }
+                if (field.sorting === undefined) {
+                    field.sorting = true;
+                }
                 if (!field.hasOwnProperty('visibility')) {
                     field.visibility = 'visible';
                 }
@@ -1751,7 +1755,7 @@ class FTable extends FTableEventEmitter {
         // Add selecting column if enabled
         if (this.options.selecting && this.options.selectingCheckboxes) {
             const selectHeader = FTableDOMHelper.create('th', {
-                className: `ftable-column-header ftable-column-header-select ${field.listClass || ''} ${field.listClassHeader || ''}`,
+                className: `ftable-column-header ftable-column-header-select`,
                 parent: headerRow
             });
 
@@ -1771,7 +1775,7 @@ class FTable extends FTableEventEmitter {
         this.columnList.forEach(fieldName => {
             const field = this.options.fields[fieldName];
             const th = FTableDOMHelper.create('th', {
-                className: 'ftable-column-header',
+                className: `ftable-column-header ${field.listClass || ''} ${field.listClassHeader || ''}`,
                 attributes: { 'data-field-name': fieldName },
                 parent: headerRow
             });
@@ -1799,7 +1803,12 @@ class FTable extends FTableEventEmitter {
             // Make sortable if enabled
             if (this.options.sorting && field.sorting !== false) {
                 FTableDOMHelper.addClass(th, 'ftable-column-header-sortable');
-                th.addEventListener('click', () => this.sortByColumn(fieldName));
+                th.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Store event for multiSortingCtrlKey logic
+                    this.lastSortEvent = e;
+                    this.sortByColumn(fieldName);
+                });
             }
 
             // Add resize handler if column resizing is enabled
@@ -2271,9 +2280,6 @@ class FTable extends FTableEventEmitter {
                     onClick: () => {
                         this.modals.addRecord.close();
                         this.emit('formClosed', { form: this.currentForm, formType: 'create', record: null });
-                        /*if (this.options.formClosed) {
-                            this.options.formClosed(this.currentForm, 'create', null);
-                        }*/
                     }
                 },
                 {
@@ -3095,10 +3101,7 @@ class FTable extends FTableEventEmitter {
                 this.modals.addRecord.close();
 
                 // Call formClosed
-                // this.emit('formClosed', { form: this.currentForm, formType: 'create', record: null });
-                if (this.options.formClosed) {
-                    this.options.formClosed(this.currentForm, 'create', null);
-                }
+                this.emit('formClosed', { form: this.currentForm, formType: 'create', record: null });
 
                 if (result.Message) {
                     this.showInfo(result.Message);
@@ -3145,10 +3148,7 @@ class FTable extends FTableEventEmitter {
                 this.modals.editRecord.close();
 
                 // Call formClosed
-                // this.emit('formClosed', { form: this.currentForm, formType: 'edit', record: result.Record || formData });
-                if (this.options.formClosed) {
-                    this.options.formClosed(this.currentForm, 'edit', this.currentEditingRow.recordData);
-                }
+                this.emit('formClosed', { form: this.currentForm, formType: 'edit', record: this.currentEditingRow.recordData });
 
                 // Update the row with new data
                 this.updateRowData(this.currentEditingRow, result.Record || formData);
@@ -3461,25 +3461,42 @@ class FTable extends FTableEventEmitter {
 
     // Sorting Methods
     sortByColumn(fieldName) {
+        const field = this.options.fields[fieldName];
+
+        if (!field || field.sorting === false) return;
+
         const existingSortIndex = this.state.sorting.findIndex(s => s.fieldName === fieldName);
-        
-        if (!this.options.multiSorting) {
-            this.state.sorting = [];
-        }
-        
+        let isSorted = true;
+        let newDirection = 'ASC';
         if (existingSortIndex >= 0) {
-            const currentSort = this.state.sorting[existingSortIndex];
-            if (currentSort.direction === 'ASC') {
-                currentSort.direction = 'DESC';
+            const wasAsc = this.state.sorting[existingSortIndex].direction === 'ASC';
+            if (wasAsc) {
+                newDirection = 'DESC';
+                this.state.sorting[existingSortIndex].direction = newDirection;
             } else {
-                this.state.sorting.splice(existingSortIndex, 1);
+                this.state.sorting.splice(existingSortIndex,1);
+                isSorted = false;
             }
         } else {
-            this.state.sorting.push({ fieldName, direction: 'ASC' });
+            this.state.sorting.push({ fieldName, direction: newDirection });
         }
-        
+
+        // Handle multiSortingCtrlKey: did user press Ctrl/Cmd?
+        const isCtrlPressed = this.lastSortEvent?.ctrlKey || this.lastSortEvent?.metaKey; // metaKey for Mac
+
+        if (this.options.multiSorting) {
+            // If multiSorting is enabled, respect multiSortingCtrlKey
+            if (this.options.multiSortingCtrlKey && !isCtrlPressed) {
+                // Not using Ctrl → treat as single sort (clear others)
+                this.state.sorting = isSorted ? [{ fieldName, direction: newDirection }] : [];
+            }
+        } else {
+            // If multiSorting is disabled, always clear other sorts
+            this.state.sorting = isSorted ? [{ fieldName, direction: newDirection }] : [];
+        }
+
         this.updateSortingHeaders();
-        this.load(); // Reload with new sorting
+        this.load();
         this.saveState();
     }
 
@@ -4306,6 +4323,15 @@ class FTable extends FTableEventEmitter {
         return this;
     }
 
+    editRecordByKey(keyValue) {
+        const row = this.getRowByKey(keyValue);
+        if (row) {
+            this.editRecord(row);
+        } else {
+            this.showError(`Record with key '${keyValue}' not found`);
+        }
+    }
+
     async editRecordViaAjax(recordId, url, params = {}) {
         try {
             // Get the actual key field name (e.g., 'asset_id', 'user_id', etc.)
@@ -4345,6 +4371,10 @@ class FTable extends FTableEventEmitter {
     }
     
     openChildTable(parentRow, childOptions, onInit) {
+        // Close any open child tables if accordion mode
+        if (this.options.openChildAsAccordion) {
+            this.closeAllChildTables();
+        }
         // Prevent multiple child tables
         this.closeChildTable(parentRow);
 
@@ -4413,6 +4443,31 @@ class FTable extends FTableEventEmitter {
         }
     }
 
+    closeAllChildTables() {
+        Object.values(this.elements.tableRows).forEach(row => {
+            if (row.childTable) {
+                this.closeChildTable(row);
+            }
+        });
+    }
+
+    getSortingInfo() {
+        // Build sorted fields list with translated directions
+        const messages = this.options.messages || {};
+        const sortingInfo = this.state.sorting.map(s => {
+            const field = this.options.fields[s.fieldName];
+            const title = field?.title || s.fieldName;
+
+            // Translate direction
+            const directionText = s.direction === 'ASC'
+                ? (messages.ascending || 'ascending')
+                : (messages.descending || 'descending');
+
+            return `${title} (${directionText})`;
+        }).join(', ');
+        return sortingInfo;
+    }
+
     renderSortingInfo() {
         if (!this.options.sortingInfoSelector || !this.options.sorting) return;
 
@@ -4434,20 +4489,10 @@ class FTable extends FTableEventEmitter {
         }
 
         // Build sorted fields list with translated directions
-        const sortedItems = this.state.sorting.map(s => {
-            const field = this.options.fields[s.fieldName];
-            const title = field?.title || s.fieldName;
-
-            // Translate direction
-            const directionText = s.direction === 'ASC'
-                ? (messages.ascending || 'ascending')
-                : (messages.descending || 'descending');
-
-            return `${title} (${directionText})`;
-        }).join(', ');
+        const sortingInfo = this.getSortingInfo();
 
         // Combine with prefix and suffix
-        container.innerHTML = `${prefix}${sortedItems}${suffix}`;
+        container.innerHTML = `${prefix}${sortingInfo}${suffix}`;
 
         // Add reset sorting button
         if (this.state.sorting.length > 0) {
