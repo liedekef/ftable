@@ -1,10 +1,4 @@
-
-(function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-    typeof define === 'function' && define.amd ? define(factory) :
-    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.FTable = factory());
-}(this, (function () {
-    // Modern fTable - Vanilla JS Refactor
+// Modern fTable - Vanilla JS Refactor
 
 const JTABLE_DEFAULT_MESSAGES = {
     serverCommunicationError: 'An error occurred while communicating to the server.',
@@ -4789,6 +4783,3 @@ table.load();
 */
 
 window.FTable = FTable;
-
-    return FTable;
-})));

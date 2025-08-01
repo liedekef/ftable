@@ -31,7 +31,7 @@ fi
 # Create a zip of the new release for GitHub (but not for npm)
 cd $basedir/..
 pwd
-zip -r ftable.zip ftable -x '*.git*' '*.less' -x 'ftable/dist*' -x 'ftable/script*' -x 'ftable/*json' -x 'ftable/.npmignore' -x 'ftable/themes/update_css.sh'
+zip -r ftable.zip ftable -x '*.git*' '*.less' -x 'ftable/dist*' -x 'ftable/script*' -x 'ftable/*json' -x 'ftable/.npmignore' -x 'ftable/themes/update_css.sh' -x 'ftable/build.mjs' -x 'ftable/src*'
 mv ftable.zip $basedir/dist/
 
 cd $basedir

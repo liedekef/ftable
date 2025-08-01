@@ -15,9 +15,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "npm run build:esm && npm run build:umd && npm run build:min",
-    "build:esm": "cp ftable.js ftable.esm.js",
-    "build:umd": "echo '/* UMD wrapper will go here */' > ftable.umd.js && cat ftable.js >> ftable.umd.js",
+    "build": "npm run build:esmumd && npm run build:min",
+    "build:esmumd": "node build.mjs",
     "build:min": "uglifyjs ftable.js -o ftable.min.js --compress --mangle",
     "prepublishOnly": "npm run build"
   },
