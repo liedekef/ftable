@@ -1330,6 +1330,7 @@ class FTable extends FTableEventEmitter {
         }
         
         this.options = this.mergeOptions(options);
+        this.verifyOptions();
         this.logger = new FTableLogger(this.options.logLevel);
         this.userPrefs = new FTableUserPreferences('', this.options.saveUserPreferencesMethod);
         this.formBuilder = new FTableFormBuilder(this.options, this);
@@ -1373,6 +1374,7 @@ class FTable extends FTableEventEmitter {
             paging: false,
             pageList: 'normal',
             pageSize: 10,
+            pageSizes: [10, 25, 50, 100],
             gotoPageArea: 'combobox',
             
             // Sorting
@@ -1414,6 +1416,12 @@ class FTable extends FTableEventEmitter {
         }
         
         return result;
+    }
+
+    verifyOptions() {
+        if (this.options.pageSize && !this.options.pageSizes.includes(this.options.pageSize)) {
+            this.options.pageSize = this.options.pageSizes[0];
+        }
     }
 
     // Public
@@ -2218,7 +2226,7 @@ class FTable extends FTableEventEmitter {
             if (Array.isArray(state.sorting)) {
                 this.state.sorting = state.sorting;
             }
-            if (state.pageSize) {
+            if (state.pageSize && this.options.pageSizes.includes(state.pageSize)) {
                 this.state.pageSize = state.pageSize;
             }
         } catch (error) {
