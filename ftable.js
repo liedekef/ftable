@@ -399,7 +399,7 @@ class FTableUserPreferences {
     }
 }
 
-class JtableModal {
+class FtableModal {
     constructor(options = {}) {
         this.options = {
             title: 'Modal',
@@ -2354,7 +2354,7 @@ class FTable extends FTableEventEmitter {
     }
 
     createAddRecordModal() {
-        this.modals.addRecord = new JtableModal({
+        this.modals.addRecord = new FtableModal({
             parent: this.elements.mainContainer,
             title: this.options.messages.addNewRecord,
             className: 'ftable-add-modal',
@@ -2377,7 +2377,7 @@ class FTable extends FTableEventEmitter {
     }
 
     createEditRecordModal() {
-        this.modals.editRecord = new JtableModal({
+        this.modals.editRecord = new FtableModal({
             parent: this.elements.mainContainer,
             title: this.options.messages.editRecord,
             className: 'ftable-edit-modal',
@@ -2400,7 +2400,7 @@ class FTable extends FTableEventEmitter {
     }
 
     createDeleteConfirmModal() {
-        this.modals.deleteConfirm = new JtableModal({
+        this.modals.deleteConfirm = new FtableModal({
             parent: this.elements.mainContainer,
             title: this.options.messages.areYouSure,
             className: 'ftable-delete-modal',
@@ -2420,7 +2420,7 @@ class FTable extends FTableEventEmitter {
     }
 
     createErrorModal() {
-        this.modals.error = new JtableModal({
+        this.modals.error = new FtableModal({
             parent: this.elements.mainContainer,
             title: this.options.messages.error,
             className: 'ftable-error-modal',
@@ -2435,7 +2435,7 @@ class FTable extends FTableEventEmitter {
     }
 
     createInfoModal() {
-        this.modals.info = new JtableModal({
+        this.modals.info = new FtableModal({
             parent: this.elements.mainContainer,
             title: '',
             className: 'ftable-info-modal',
@@ -2450,7 +2450,7 @@ class FTable extends FTableEventEmitter {
     }
 
     createLoadingModal() {
-        this.modals.loading = new JtableModal({
+        this.modals.loading = new FtableModal({
             parent: this.elements.mainContainer,
             title: '',
             className: 'ftable-loading-modal',
