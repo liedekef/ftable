@@ -19,7 +19,7 @@ const FTABLE_DEFAULT_MESSAGES = {
     cancel: 'Cancel',
     deleteText: 'Delete',
     deleting: 'Deleting',
-    error: 'Error',
+    error: 'An error has occured',
     close: 'Close',
     cannotLoadOptionsFor: 'Cannot load options for field {0}!',
     pagingInfo: 'Showing {0}-{1} of {2}',
@@ -2437,7 +2437,7 @@ class FTable extends FTableEventEmitter {
     createInfoModal() {
         this.modals.info = new JtableModal({
             parent: this.elements.mainContainer,
-            title: this.options.messages.error,
+            title: '',
             className: 'ftable-info-modal',
             buttons: [
                 {
