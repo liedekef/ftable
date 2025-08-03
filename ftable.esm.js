@@ -1,7 +1,7 @@
 
 // Modern fTable - Vanilla JS Refactor
 
-const JTABLE_DEFAULT_MESSAGES = {
+const FTABLE_DEFAULT_MESSAGES = {
     serverCommunicationError: 'An error occurred while communicating to the server.',
     loadingMessage: 'Loading records...',
     noDataAvailable: 'No data available!',
@@ -904,6 +904,10 @@ class FTableFormBuilder {
             case 'file':
                 input = this.createFileInput(fieldName, field, value);
                 break;
+            case 'date':
+            case 'datetime-local':
+                input = this.createDateInput(fieldName, field, value);
+                break;
             default:
                 input = this.createTypedInput(fieldName, field, value);
         }
@@ -948,14 +952,65 @@ class FTableFormBuilder {
         return container;
     }
 
+    createDateInput(fieldName, field, value) {
+        // Check if FDatepicker is available
+        if (typeof FDatepicker !== 'undefined') {
+            const dateFormat = field.dateFormat || this.options.defaultDateFormat;
+
+            const container = document.createElement('div');
+            // Create hidden input
+            const hiddenInput = Object.assign(document.createElement('input'), {
+                id: 'real-' + fieldName,
+                type: 'hidden',
+                value: value || '',
+                name: fieldName
+            });
+            // Create visible input
+            const visibleInput = Object.assign(document.createElement('input'), {
+                className: field.inputClass || 'datepicker-input',
+                id: 'Edit-' + fieldName,
+                type: 'text',
+                'data-date': 'alt-' + fieldName,
+                value: value || '',
+                readOnly: true
+            });
+
+            if (value) {
+                hiddenInput.value = value;
+                visibleInput.dataset.date = value;
+            }
+
+            // Set any additional attributes
+            if (field.inputAttributes) {
+                Object.keys(field.inputAttributes).forEach(key => {
+                    visibleInput.setAttribute(key, field.inputAttributes[key]);
+                });
+            }
+
+            // Append both inputs
+            container.appendChild(hiddenInput);
+            container.appendChild(visibleInput);
+
+            // Apply FDatepicker
+            const picker = new FDatepicker(visibleInput, {
+                format: dateFormat,
+                altField: 'real-' + fieldName,
+                altFormat: 'Y-m-d'
+            });
+
+            return container;
+        } else {
+            return createTypedInput(fieldName, field, value);
+        }
+    }
+
     createTypedInput(fieldName, field, value) {
         const inputType = field.type || 'text';
         const attributes = {
             type: inputType,
             id: `Edit-${fieldName}`,
             placeholder: field.placeholder || '',
-            value: value || '',
-            class: field.inputClass || ''
+            value: value || ''
         };
 
         // extra check for name and multiple
@@ -975,7 +1030,10 @@ class FTableFormBuilder {
         }
         attributes.name = name;
 
-        const input = FTableDOMHelper.create('input', { attributes });
+        const input = FTableDOMHelper.create('input', {
+            className: field.inputClass || '',
+            attributes: attributes
+        });
 
         // Prevent form submit on Enter, trigger change instead
         input.addEventListener('keypress', (e) => {
@@ -1340,6 +1398,7 @@ class FTable extends FTableEventEmitter {
             animationsEnabled: true,
             loadingAnimationDelay: 1000,
             defaultDateLocale: 'en',
+            defaultDateFormat: 'm/d/Y',
             saveUserPreferences: true,
             saveUserPreferencesMethod: 'localStorage',
             defaultSorting: '',
@@ -1373,7 +1432,7 @@ class FTable extends FTableEventEmitter {
             listCache: 30000, // or listCache: 30000 (duration in ms)
 
             // Messages
-            messages: { ...JTABLE_DEFAULT_MESSAGES } // Safe copy
+            messages: { ...FTABLE_DEFAULT_MESSAGES } // Safe copy
         };
 
         return this.deepMerge(defaults, options);
@@ -1401,7 +1460,7 @@ class FTable extends FTableEventEmitter {
 
     // Public
     static setMessages(customMessages) {
-        Object.assign(JTABLE_DEFAULT_MESSAGES, customMessages);
+        Object.assign(FTABLE_DEFAULT_MESSAGES, customMessages);
     }
 
     init() {
@@ -1872,14 +1931,45 @@ class FTable extends FTableEventEmitter {
 
                 switch (field.type) {
                     case 'date':
-                        input = FTableDOMHelper.create('input', {
-                            attributes: {
-                                type: 'date',
-                                'data-field-name': fieldName,
-                                id: fieldSearchName,
-                                class: 'ftable-toolbarsearch'
-                            }
-                        });
+                    case 'datetime-local':
+                        if (typeof FDatepicker !== 'undefined') {
+                            const dateFormat = field.dateFormat || this.options.defaultDateFormat;
+                            input = document.createElement('div');
+                            // Create hidden input
+                            const hiddenInput = Object.assign(document.createElement('input'), {
+                                id: 'ftable-toolbarsearch-extra-' + fieldName,
+                                type: 'hidden',
+                                name: fieldName,
+                                className: 'ftable-toolbarsearch-extra'
+                            });
+                            // Create visible input
+                            const visibleInput = Object.assign(document.createElement('input'), {
+                                className: 'ftable-toolbarsearch',
+                                id: 'ftable-toolbarsearch-' + fieldName,
+                                type: 'text',
+                                readOnly: true
+                            });
+                            // Append both inputs
+                            input.appendChild(hiddenInput);
+                            input.appendChild(visibleInput);
+
+                            // Apply FDatepicker
+                            const picker = new FDatepicker(visibleInput, {
+                                format: dateFormat,
+                                altField: 'ftable-toolbarsearch-extra-' + fieldName,
+                                altFormat: 'Y-m-d'
+                            });
+
+                        } else {
+                            input = FTableDOMHelper.create('input', {
+                                className: 'ftable-toolbarsearch',
+                                attributes: {
+                                    type: 'date',
+                                    'data-field-name': fieldName,
+                                    id: fieldSearchName,
+                                }
+                            });
+                        }
                         break;
 
                     case 'checkbox':
@@ -1887,10 +1977,10 @@ class FTable extends FTableEventEmitter {
                             input = await this.createSelectForSearch(fieldName, field, true);
                         } else {
                             input = FTableDOMHelper.create('input', {
+                                className: 'ftable-toolbarsearch',
                                 attributes: {
                                     type: 'text',
                                     'data-field-name': fieldName,
-                                    class: 'ftable-toolbarsearch',
                                     id: fieldSearchName,
                                     placeholder: 'Search...'
                                 }
@@ -1903,10 +1993,10 @@ class FTable extends FTableEventEmitter {
                             input = await this.createSelectForSearch(fieldName, field, false);
                         } else {
                             input = FTableDOMHelper.create('input', {
+                                className: 'ftable-toolbarsearch',
                                 attributes: {
                                     type: 'text',
                                     'data-field-name': fieldName,
-                                    class: 'ftable-toolbarsearch',
                                     id: fieldSearchName,
                                     placeholder: 'Search...'
                                 }
@@ -1916,10 +2006,10 @@ class FTable extends FTableEventEmitter {
 
                     default:
                         input = FTableDOMHelper.create('input', {
+                            className: 'ftable-toolbarsearch',
                             attributes: {
                                 type: 'text',
                                 'data-field-name': fieldName,
-                                class: 'ftable-toolbarsearch',
                                 id: fieldSearchName,
                                 placeholder: 'Search...'
                             }
@@ -2984,11 +3074,19 @@ class FTable extends FTableEventEmitter {
         }
 
         if (field.type === 'date' && value) {
-            return this.formatDate(value, field.dateLocale || this.options.defaultDateLocale || 'en' );
+            if (typeof FDatepicker !== 'undefined') {
+                return FDatepicker.formatDate(this._parseDate(value), field.dateFormat || this.options.defaultDateFormat);
+            } else {
+                return this.formatDate(value, field.dateLocale || this.options.defaultDateLocale || 'en' );
+            }
         }
 
         if (field.type === 'datetime-local' && value) {
-            return this.formatDateTime(value, field.dateLocale || this.options.defaultDateLocale || 'en' );
+            if (typeof FDatepicker !== 'undefined') {
+                return FDatepicker.formatDate(this._parseDate(value), field.dateFormat || this.options.defaultDateFormat);
+            } else {
+                return this.formatDateTime(value, field.dateLocale || this.options.defaultDateLocale || 'en' );
+            }
         }
 
         if (field.type === 'checkbox') {

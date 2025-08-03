@@ -1,3 +1,6 @@
+= 1.1.3 (2025/08/03) =
+* support fdatepicker
+
 = 1.1.2 (2025/08/01) =
 * support defaultDateLocale
 
