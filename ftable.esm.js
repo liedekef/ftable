@@ -971,7 +971,6 @@ class FTableFormBuilder {
             const visibleInput = FTableDOMHelper.create('input', {
                 className: field.inputClass || 'datepicker-input',
                 attributes: {
-                    id: 'ftable-toolbarsearch-' + fieldName,
                     id: 'Edit-' + fieldName,
                     type: 'text',
                     'data-date': value,
@@ -1950,6 +1949,7 @@ class FTable extends FTableEventEmitter {
                                 attributes: {
                                     id: 'ftable-toolbarsearch-' + fieldName,
                                     type: 'text',
+                                    placeholder: field.placeholder || '',
                                     readOnly: true
                                 }
                             });
