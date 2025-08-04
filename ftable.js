@@ -980,6 +980,7 @@ class FTableFormBuilder {
                     id: 'Edit-' + fieldName,
                     type: 'text',
                     'data-date': value,
+                    placeholder: field.placeholder || '',
                     readOnly: true
                 }
             });
