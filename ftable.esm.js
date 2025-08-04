@@ -394,7 +394,7 @@ class FTableUserPreferences {
     }
 }
 
-class JtableModal {
+class FtableModal {
     constructor(options = {}) {
         this.options = {
             title: 'Modal',
@@ -959,26 +959,25 @@ class FTableFormBuilder {
 
             const container = document.createElement('div');
             // Create hidden input
-            const hiddenInput = Object.assign(document.createElement('input'), {
-                id: 'real-' + fieldName,
-                type: 'hidden',
-                value: value || '',
-                name: fieldName
+            const hiddenInput = FTableDOMHelper.create('input', {
+                attributes: {
+                    id: 'real-' + fieldName,
+                    type: 'hidden',
+                    value: value || '',
+                    name: fieldName
+                }
             });
             // Create visible input
-            const visibleInput = Object.assign(document.createElement('input'), {
+            const visibleInput = FTableDOMHelper.create('input', {
                 className: field.inputClass || 'datepicker-input',
-                id: 'Edit-' + fieldName,
-                type: 'text',
-                'data-date': 'alt-' + fieldName,
-                value: value || '',
-                readOnly: true
+                attributes: {
+                    id: 'ftable-toolbarsearch-' + fieldName,
+                    id: 'Edit-' + fieldName,
+                    type: 'text',
+                    'data-date': value,
+                    readOnly: true
+                }
             });
-
-            if (value) {
-                hiddenInput.value = value;
-                visibleInput.dataset.date = value;
-            }
 
             // Set any additional attributes
             if (field.inputAttributes) {
@@ -1397,8 +1396,8 @@ class FTable extends FTableEventEmitter {
             fields: {},
             animationsEnabled: true,
             loadingAnimationDelay: 1000,
-            defaultDateLocale: 'en',
-            defaultDateFormat: 'm/d/Y',
+            defaultDateLocale: '',
+            defaultDateFormat: 'Y-m-d',
             saveUserPreferences: true,
             saveUserPreferencesMethod: 'localStorage',
             defaultSorting: '',
@@ -1936,18 +1935,22 @@ class FTable extends FTableEventEmitter {
                             const dateFormat = field.dateFormat || this.options.defaultDateFormat;
                             input = document.createElement('div');
                             // Create hidden input
-                            const hiddenInput = Object.assign(document.createElement('input'), {
-                                id: 'ftable-toolbarsearch-extra-' + fieldName,
-                                type: 'hidden',
-                                name: fieldName,
-                                className: 'ftable-toolbarsearch-extra'
+                            const hiddenInput = FTableDOMHelper.create('input', {
+                                className: 'ftable-toolbarsearch-extra',
+                                attributes: {
+                                    type: 'hidden',
+                                    'data-field-name': fieldName,
+                                    id: 'ftable-toolbarsearch-extra-' + fieldName,
+                                }
                             });
                             // Create visible input
-                            const visibleInput = Object.assign(document.createElement('input'), {
+                            const visibleInput = FTableDOMHelper.create('input', {
                                 className: 'ftable-toolbarsearch',
-                                id: 'ftable-toolbarsearch-' + fieldName,
-                                type: 'text',
-                                readOnly: true
+                                attributes: {
+                                    id: 'ftable-toolbarsearch-' + fieldName,
+                                    type: 'text',
+                                    readOnly: true
+                                }
                             });
                             // Append both inputs
                             input.appendChild(hiddenInput);
@@ -2349,7 +2352,7 @@ class FTable extends FTableEventEmitter {
     }
 
     createAddRecordModal() {
-        this.modals.addRecord = new JtableModal({
+        this.modals.addRecord = new FtableModal({
             parent: this.elements.mainContainer,
             title: this.options.messages.addNewRecord,
             className: 'ftable-add-modal',
@@ -2372,7 +2375,7 @@ class FTable extends FTableEventEmitter {
     }
 
     createEditRecordModal() {
-        this.modals.editRecord = new JtableModal({
+        this.modals.editRecord = new FtableModal({
             parent: this.elements.mainContainer,
             title: this.options.messages.editRecord,
             className: 'ftable-edit-modal',
@@ -2395,7 +2398,7 @@ class FTable extends FTableEventEmitter {
     }
 
     createDeleteConfirmModal() {
-        this.modals.deleteConfirm = new JtableModal({
+        this.modals.deleteConfirm = new FtableModal({
             parent: this.elements.mainContainer,
             title: this.options.messages.areYouSure,
             className: 'ftable-delete-modal',
@@ -2415,7 +2418,7 @@ class FTable extends FTableEventEmitter {
     }
 
     createErrorModal() {
-        this.modals.error = new JtableModal({
+        this.modals.error = new FtableModal({
             parent: this.elements.mainContainer,
             title: this.options.messages.error,
             className: 'ftable-error-modal',
@@ -2430,7 +2433,7 @@ class FTable extends FTableEventEmitter {
     }
 
     createInfoModal() {
-        this.modals.info = new JtableModal({
+        this.modals.info = new FtableModal({
             parent: this.elements.mainContainer,
             title: '',
             className: 'ftable-info-modal',
@@ -2445,7 +2448,7 @@ class FTable extends FTableEventEmitter {
     }
 
     createLoadingModal() {
-        this.modals.loading = new JtableModal({
+        this.modals.loading = new FtableModal({
             parent: this.elements.mainContainer,
             title: '',
             className: 'ftable-loading-modal',
@@ -3077,7 +3080,7 @@ class FTable extends FTableEventEmitter {
             if (typeof FDatepicker !== 'undefined') {
                 return FDatepicker.formatDate(this._parseDate(value), field.dateFormat || this.options.defaultDateFormat);
             } else {
-                return this.formatDate(value, field.dateLocale || this.options.defaultDateLocale || 'en' );
+                return this.formatDate(value, field.dateLocale || this.options.defaultDateLocale );
             }
         }
 
@@ -3085,7 +3088,7 @@ class FTable extends FTableEventEmitter {
             if (typeof FDatepicker !== 'undefined') {
                 return FDatepicker.formatDate(this._parseDate(value), field.dateFormat || this.options.defaultDateFormat);
             } else {
-                return this.formatDateTime(value, field.dateLocale || this.options.defaultDateLocale || 'en' );
+                return this.formatDateTime(value, field.dateLocale || this.options.defaultDateLocale );
             }
         }
 

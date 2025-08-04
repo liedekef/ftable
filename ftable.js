@@ -964,26 +964,25 @@ class FTableFormBuilder {
 
             const container = document.createElement('div');
             // Create hidden input
-            const hiddenInput = Object.assign(document.createElement('input'), {
-                id: 'real-' + fieldName,
-                type: 'hidden',
-                value: value || '',
-                name: fieldName
+            const hiddenInput = FTableDOMHelper.create('input', {
+                attributes: {
+                    id: 'real-' + fieldName,
+                    type: 'hidden',
+                    value: value || '',
+                    name: fieldName
+                }
             });
             // Create visible input
-            const visibleInput = Object.assign(document.createElement('input'), {
+            const visibleInput = FTableDOMHelper.create('input', {
                 className: field.inputClass || 'datepicker-input',
-                id: 'Edit-' + fieldName,
-                type: 'text',
-                'data-date': 'alt-' + fieldName,
-                value: value || '',
-                readOnly: true
+                attributes: {
+                    id: 'ftable-toolbarsearch-' + fieldName,
+                    id: 'Edit-' + fieldName,
+                    type: 'text',
+                    'data-date': value,
+                    readOnly: true
+                }
             });
-
-            if (value) {
-                hiddenInput.value = value;
-                visibleInput.dataset.date = value;
-            }
 
             // Set any additional attributes
             if (field.inputAttributes) {
@@ -1402,8 +1401,8 @@ class FTable extends FTableEventEmitter {
             fields: {},
             animationsEnabled: true,
             loadingAnimationDelay: 1000,
-            defaultDateLocale: 'en',
-            defaultDateFormat: 'm/d/Y',
+            defaultDateLocale: '',
+            defaultDateFormat: 'Y-m-d',
             saveUserPreferences: true,
             saveUserPreferencesMethod: 'localStorage',
             defaultSorting: '',
@@ -1941,18 +1940,22 @@ class FTable extends FTableEventEmitter {
                             const dateFormat = field.dateFormat || this.options.defaultDateFormat;
                             input = document.createElement('div');
                             // Create hidden input
-                            const hiddenInput = Object.assign(document.createElement('input'), {
-                                id: 'ftable-toolbarsearch-extra-' + fieldName,
-                                type: 'hidden',
-                                name: fieldName,
-                                className: 'ftable-toolbarsearch-extra'
+                            const hiddenInput = FTableDOMHelper.create('input', {
+                                className: 'ftable-toolbarsearch-extra',
+                                attributes: {
+                                    type: 'hidden',
+                                    'data-field-name': fieldName,
+                                    id: 'ftable-toolbarsearch-extra-' + fieldName,
+                                }
                             });
                             // Create visible input
-                            const visibleInput = Object.assign(document.createElement('input'), {
+                            const visibleInput = FTableDOMHelper.create('input', {
                                 className: 'ftable-toolbarsearch',
-                                id: 'ftable-toolbarsearch-' + fieldName,
-                                type: 'text',
-                                readOnly: true
+                                attributes: {
+                                    id: 'ftable-toolbarsearch-' + fieldName,
+                                    type: 'text',
+                                    readOnly: true
+                                }
                             });
                             // Append both inputs
                             input.appendChild(hiddenInput);
@@ -3082,7 +3085,7 @@ class FTable extends FTableEventEmitter {
             if (typeof FDatepicker !== 'undefined') {
                 return FDatepicker.formatDate(this._parseDate(value), field.dateFormat || this.options.defaultDateFormat);
             } else {
-                return this.formatDate(value, field.dateLocale || this.options.defaultDateLocale || 'en' );
+                return this.formatDate(value, field.dateLocale || this.options.defaultDateLocale );
             }
         }
 
@@ -3090,7 +3093,7 @@ class FTable extends FTableEventEmitter {
             if (typeof FDatepicker !== 'undefined') {
                 return FDatepicker.formatDate(this._parseDate(value), field.dateFormat || this.options.defaultDateFormat);
             } else {
-                return this.formatDateTime(value, field.dateLocale || this.options.defaultDateLocale || 'en' );
+                return this.formatDateTime(value, field.dateLocale || this.options.defaultDateLocale );
             }
         }
 
