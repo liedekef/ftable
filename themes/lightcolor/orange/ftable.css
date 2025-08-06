@@ -169,31 +169,6 @@ div.ftable-main-container div.ftable-column-resize-bar {
   width: 1px;
   background-color: #000;
 }
-div.ftable-main-container div.ftable-column-selection-container {
-  position: absolute;
-  border: 1px solid #C8C8C8;
-  background: #fff;
-  color: #000;
-  z-index: 101;
-  padding: 5px;
-}
-div.ftable-main-container div.ftable-column-selection-container ul.ftable-column-select-list {
-  margin: 0px;
-  padding: 0px;
-  list-style: none;
-}
-div.ftable-main-container div.ftable-column-selection-container ul.ftable-column-select-list li {
-  margin: 0px;
-  padding: 2px 0px;
-}
-div.ftable-main-container div.ftable-column-selection-container ul.ftable-column-select-list li label span {
-  position: relative;
-  top: -1px;
-  margin-left: 4px;
-}
-div.ftable-main-container div.ftable-column-selection-container ul.ftable-column-select-list li input[type="checkbox"] {
-  cursor: pointer;
-}
 form.ftable-dialog-form div.ftable-input-field-container {
   padding: 2px 0px 3px 0px;
   border-bottom: 1px solid #ddd;
@@ -314,6 +289,31 @@ div.ftable-contextmenu-overlay {
 }
 th.ftable-toolbarsearch-reset {
   text-align: center !important;
+}
+div.ftable-column-selection-container {
+  position: absolute;
+  border: 1px solid #C8C8C8;
+  background: #fff;
+  color: #000;
+  z-index: 101;
+  padding: 5px;
+}
+div.ftable-column-selection-container ul.ftable-column-select-list {
+  margin: 0px;
+  padding: 0px;
+  list-style: none;
+}
+div.ftable-column-selection-container ul.ftable-column-select-list li {
+  margin: 0px;
+  padding: 2px 0px;
+}
+div.ftable-column-selection-container ul.ftable-column-select-list li label span {
+  position: relative;
+  top: -1px;
+  margin-left: 4px;
+}
+div.ftable-column-selection-container ul.ftable-column-select-list li input[type="checkbox"] {
+  cursor: pointer;
 }
 div.ftable-main-container {
   font-family: Verdana, Arial, Helvetica, sans-serif;
@@ -521,14 +521,6 @@ div.ftable-main-container div.ftable-bottom-panel span.ftable-add-record a {
 div.ftable-main-container div.ftable-bottom-panel span.ftable-add-record a:hover {
   text-decoration: underline;
 }
-div.ftable-main-container div.ftable-column-selection-container {
-  -webkit-border-radius: 3px;
-  -moz-border-radius: 3px;
-  border-radius: 3px;
-  -webkit-box-shadow: 2px 2px 4px rgba(50, 51, 50, 0.75);
-  -moz-box-shadow: 2px 2px 4px rgba(50, 51, 50, 0.75);
-  box-shadow: 2px 2px 4px rgba(50, 51, 50, 0.75);
-}
 form.ftable-dialog-form {
   font-family: Verdana, Arial, Helvetica, sans-serif;
   font-size: 1em;
@@ -551,6 +543,14 @@ div.ftable-busy-message {
   padding: 3px 5px 5px 27px;
   background: url('../orange/loading.gif') no-repeat;
   background-position: 5px;
+}
+div.ftable-column-selection-container {
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  -webkit-box-shadow: 2px 2px 4px rgba(50, 51, 50, 0.75);
+  -moz-box-shadow: 2px 2px 4px rgba(50, 51, 50, 0.75);
+  box-shadow: 2px 2px 4px rgba(50, 51, 50, 0.75);
 }
 div.ftable-main-container div.ftable-title {
   background: #ffa366;

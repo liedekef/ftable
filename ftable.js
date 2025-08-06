@@ -4,9 +4,7 @@
     typeof define === 'function' && define.amd ? define(factory) :
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.FTable = factory());
 }(this, (function () {
-    // Modern fTable - Vanilla JS Refactor
-
-const FTABLE_DEFAULT_MESSAGES = {
+    const FTABLE_DEFAULT_MESSAGES = {
     serverCommunicationError: 'An error occurred while communicating to the server.',
     loadingMessage: 'Loading records...',
     noDataAvailable: 'No data available!',
@@ -753,7 +751,9 @@ class FTableFormBuilder {
         }
 
         try {
-            const response = await FTableHttpClient.get(url);
+            const response = this.options.forcePost
+                ? await FTableHttpClient.post(url)
+                : await FTableHttpClient.get(url);
             const options = response.Options || response.options || response || [];
 
             // Only cache if noCache is false
@@ -1359,10 +1359,14 @@ class FTable extends FTableEventEmitter {
         this.element = typeof element === 'string' ? 
             document.querySelector(element) : element;
 
+        if (!this.element) {
+            return;
+        }
+
         // Prevent double initialization
-        if (element.ftableInstance) {
+        if (this.element.ftableInstance) {
             //console.warn('FTable is already initialized on this element. Using that.');
-            return element.ftableInstance;
+            return this.element.ftableInstance;
         }
         
         this.options = this.mergeOptions(options);
@@ -1399,6 +1403,7 @@ class FTable extends FTableEventEmitter {
             logLevel: FTableLogger.LOG_LEVELS.WARN,
             actions: {},
             fields: {},
+            forcePost: true,
             animationsEnabled: true,
             loadingAnimationDelay: 1000,
             defaultDateLocale: '',
@@ -2525,13 +2530,15 @@ class FTable extends FTableEventEmitter {
         // Create overlay to capture clicks outside menu
         this.elements.columnSelectionOverlay = FTableDOMHelper.create('div', {
             className: 'ftable-contextmenu-overlay',
-            parent: this.elements.mainContainer
+            //parent: this.elements.mainContainer
+            parent: document.body
         });
 
         // Create the menu
         this.elements.columnSelectionMenu = FTableDOMHelper.create('div', {
             className: 'ftable-column-selection-container',
-            parent: this.elements.columnSelectionOverlay
+            //parent: this.elements.columnSelectionOverlay
+            parent: document.body
         });
 
         // Populate menu with column options
@@ -2617,29 +2624,36 @@ class FTable extends FTableEventEmitter {
     }
 
     positionColumnSelectionMenu(e) {
-        const containerRect = this.elements.mainContainer.getBoundingClientRect();
-        const menuWidth = 200; // Approximate menu width
-        const menuHeight = this.columnList.length * 30 + 20; // Approximate height
+        const self = this;
 
-        let left = e.clientX - containerRect.left;
-        let top = e.clientY - containerRect.top;
+        // Use clientX/clientY (relative to viewport)
+        let left = e.clientX;
+        let top = e.clientY;
 
-        // Adjust position to keep menu within container bounds
-        if (left + menuWidth > containerRect.width) {
-            left = Math.max(0, containerRect.width - menuWidth);
+        // Define minimum width
+        const minWidth = 100;
+
+        // Position the menu
+        self.elements.columnSelectionMenu.style.position = 'absolute';
+        self.elements.columnSelectionMenu.style.left = `${left}px`;
+        self.elements.columnSelectionMenu.style.top = `${top}px`;
+        self.elements.columnSelectionMenu.style.minWidth = `${minWidth}px`;
+        self.elements.columnSelectionMenu.style.boxSizing = 'border-box';
+
+        // Optional: Adjust if menu would overflow right edge
+        const menuWidth = self.elements.columnSelectionMenu.offsetWidth;
+        const windowWidth = window.innerWidth;
+
+        if (left + menuWidth > windowWidth) {
+            left = Math.max(10, windowWidth - menuWidth - 10); // 10px margin
+            self.elements.columnSelectionMenu.style.left = `${left}px`;
         }
-
-        if (top + menuHeight > containerRect.height) {
-            top = Math.max(0, containerRect.height - menuHeight);
-        }
-
-        this.elements.columnSelectionMenu.style.left = left + 'px';
-        this.elements.columnSelectionMenu.style.top = top + 'px';
     }
 
     hideColumnSelectionMenu() {
         if (this.elements.columnSelectionOverlay) {
             this.elements.columnSelectionOverlay.remove();
+            this.elements.columnSelectionMenu.remove();
             this.elements.columnSelectionOverlay = null;
             this.elements.columnSelectionMenu = null;
         }
@@ -2882,7 +2896,9 @@ class FTable extends FTableEventEmitter {
         if (typeof listAction === 'function') {
             data = await listAction(params);
         } else if (typeof listAction === 'string') {
-            data = await FTableHttpClient.get(listAction, params);
+            data = this.options.forcePost
+                ? await FTableHttpClient.post(listAction, params)
+                : await FTableHttpClient.get(listAction, params);
         } else {
             throw new Error('No valid listAction provided');
         }
@@ -4416,7 +4432,9 @@ class FTable extends FTableEventEmitter {
                 ...params 
             };
 
-            const response = await FTableHttpClient.get(url, fullParams);
+            const response = this.options.forcePost
+                ? await FTableHttpClient.post(url, fullParams)
+                : await FTableHttpClient.get(url, fullParams);
 
             if (!response || !response.Record) {
                 throw new Error('Invalid response or missing Record');
@@ -4717,142 +4735,6 @@ class FTable extends FTableEventEmitter {
         });
     }
 }
-
-// Export for use
-//window.FTable = FTable;
-
-// Usage example:
-/*
-const table = new FTable('#myTable', {
-    title: 'My Data Table',
-    paging: true,
-    pageSize: 25,
-    sorting: true,
-    selecting: true,
-    actions: {
-        listAction: '/api/users',
-        createAction: '/api/users',
-        updateAction: '/api/users',
-        deleteAction: '/api/users'
-    },
-    fields: {
-        id: { key: true, list: false },
-        name: {
-            title: 'Name',
-            type: 'text',
-            inputAttributes: "maxlength=100 required"
-        },
-        email: {
-            title: 'Email',
-            type: 'email',
-            width: '40%',
-            inputAttributes: {
-                pattern: '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$'
-            }
-        },
-        created: { title: 'Created', type: 'date', width: '30%' }
-    },
-    toolbarsearch: true,
-    childTable: {
-        title: 'Child Records',
-        actions: {
-            listAction: '/api/users/{id}/orders', // {id} will be replaced with parent record id
-            createAction: '/api/users/{id}/orders',
-            updateAction: '/api/orders',
-            deleteAction: '/api/orders'
-        },
-        fields: {
-            orderId: { key: true, list: false },
-            orderDate: { title: 'Date', type: 'date' },
-            amount: { title: 'Amount', type: 'number' }
-        }
-    },
-    childTableColumnsVisible: true,
-
-});
-
-// Or dynamic child table
-childTable: async function(parentRecord) {
-    return {
-        title: `Orders for ${parentRecord.name}`,
-        actions: {
-            listAction: `/api/users/${parentRecord.id}/orders`
-        },
-        fields: {
-            // Dynamic fields based on parent
-        }
-    };
-}
-
-// function for select options
-fields: {
-    assignee: {
-        title: 'Assigned To',
-        type: 'select',
-        options: async function(params) {
-            // params contains dependsOnValue, dependsOnField, etc.
-            const department = params.dependsOnValue;
-            const response = await fetch(`/api/users?department=${department}`);
-            return response.json();
-        },
-        dependsOn: 'department'
-    }
-}
-
-// child table:
-phoneNumbers: {
-    title: 'Phones',
-    display: (data) => {
-        const img = document.createElement('img');
-        img.className = 'child-opener-image';
-        img.src = '/Content/images/Misc/phone.png';
-        img.title = 'Edit phone numbers';
-        img.style.cursor = 'pointer';
-
-        parentRow = img.closest('tr');
-        img.addEventListener('click', () => {
-            e.stopPropagation();
-            if (parentRow.childRow) {
-                myTable.closeChildTable(parentRow);
-            } else {
-                myTable.openChildTable( parentRow, {
-                    title: `${data.record.Name} - Phone numbers`,
-                    actions: {
-                        listAction: `/PagingPerson/PhoneList?PersonId=${data.record.PersonId}`,
-                        deleteAction: '/PagingPerson/DeletePhone',
-                        updateAction: '/PagingPerson/UpdatePhone',
-                        createAction: `/PagingPerson/CreatePhone?PersonId=${data.record.PersonId}`
-                    },
-                    fields: {
-                        PhoneId: { key: true },
-                        Number: { title: 'Number', type: 'text' },
-                        Type: { title: 'Type', options: { 0: 'Home', 1: 'Work', 2: 'Mobile' } }
-                    }
-                }, (childTable) => {
-                    console.log('Child table created');
-                };
-            }
-        });
-        img.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (parentRow.childRow) {
-                myTable.closeChildTable(parentRow);
-            } else {
-                myTable.openChildTable(parentRow, childOptions);
-            }
-        });
-
-        return img;
-    }
-}
-
-// Clear specific options cache
-table.clearOptionsCache('/api/countries');
-
-table.load();
-*/
-
-window.FTable = FTable;
 
     return FTable;
 })));

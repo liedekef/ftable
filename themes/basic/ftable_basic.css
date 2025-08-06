@@ -172,31 +172,6 @@ div.ftable-main-container div.ftable-column-resize-bar {
   width: 1px;
   background-color: #000;
 }
-div.ftable-main-container div.ftable-column-selection-container {
-  position: absolute;
-  border: 1px solid #C8C8C8;
-  background: #fff;
-  color: #000;
-  z-index: 101;
-  padding: 5px;
-}
-div.ftable-main-container div.ftable-column-selection-container ul.ftable-column-select-list {
-  margin: 0px;
-  padding: 0px;
-  list-style: none;
-}
-div.ftable-main-container div.ftable-column-selection-container ul.ftable-column-select-list li {
-  margin: 0px;
-  padding: 2px 0px;
-}
-div.ftable-main-container div.ftable-column-selection-container ul.ftable-column-select-list li label span {
-  position: relative;
-  top: -1px;
-  margin-left: 4px;
-}
-div.ftable-main-container div.ftable-column-selection-container ul.ftable-column-select-list li input[type="checkbox"] {
-  cursor: pointer;
-}
 form.ftable-dialog-form div.ftable-input-field-container {
   padding: 2px 0px 3px 0px;
   border-bottom: 1px solid #ddd;
@@ -317,6 +292,31 @@ div.ftable-contextmenu-overlay {
 }
 th.ftable-toolbarsearch-reset {
   text-align: center !important;
+}
+div.ftable-column-selection-container {
+  position: absolute;
+  border: 1px solid #C8C8C8;
+  background: #fff;
+  color: #000;
+  z-index: 101;
+  padding: 5px;
+}
+div.ftable-column-selection-container ul.ftable-column-select-list {
+  margin: 0px;
+  padding: 0px;
+  list-style: none;
+}
+div.ftable-column-selection-container ul.ftable-column-select-list li {
+  margin: 0px;
+  padding: 2px 0px;
+}
+div.ftable-column-selection-container ul.ftable-column-select-list li label span {
+  position: relative;
+  top: -1px;
+  margin-left: 4px;
+}
+div.ftable-column-selection-container ul.ftable-column-select-list li input[type="checkbox"] {
+  cursor: pointer;
 }
 div.ftable-main-container div.ftable-title div.ftable-title-text {
   font-size: 16px;
