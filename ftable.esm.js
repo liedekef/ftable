@@ -1218,64 +1218,55 @@ class FTableFormBuilder {
     }
 
     createCheckbox(fieldName, field, value) {
-        function getCheckboxText(field, value) {
-            if (value == undefined ) {
-                value = 0;
-            }
-            if (field.values && field.values[value] !== undefined) {
-                return field.values[value];
-            }
-            return value ? 'Yes' : 'No';
-        }
         const wrapper = FTableDOMHelper.create('div', {
-            className: 'ftable-checkbox-wrapper'
+            className: 'ftable-yesno-check-wrapper'
         });
 
         const isChecked = [1, '1', true, 'true'].includes(value);
 
-        const displayValue = getCheckboxText(field, value); // Uses field.values if defined
+        // Determine "Yes" and "No" labels
+        let dataNo = 'No';
+        let dataYes = 'Yes';
 
+        if (field.values && typeof field.values === 'object') {
+            if (field.values['0'] !== undefined) dataNo = field.values['0'];
+            if (field.values['1'] !== undefined) dataYes = field.values['1'];
+        }
+
+        // Create the checkbox
         const checkbox = FTableDOMHelper.create('input', {
+            className: ['ftable-yesno-check-input', field.inputClass || ''].filter(Boolean).join(' '),
             attributes: {
                 type: 'checkbox',
                 name: fieldName,
                 id: `Edit-${fieldName}`,
-                class: field.inputClass || '',
                 value: '1'
+            },
+            properties: {
+                checked: isChecked
             },
             parent: wrapper
         });
-        checkbox.checked = isChecked;
 
+        // Create the label with data attributes
         const label = FTableDOMHelper.create('label', {
-            attributes: { for: `Edit-${fieldName}` },
+            className: 'ftable-yesno-check-text',
+            attributes: {
+                for: `Edit-${fieldName}`,
+                'data-yes': dataYes,
+                'data-no': dataNo
+            },
             parent: wrapper
         });
 
-        // Add the static formText (e.g., "Is Active?")
+        // Optional: Add a static form label (e.g., "Is Active?")
         if (field.formText) {
-            FTableDOMHelper.create('span', {
+            const formSpan = FTableDOMHelper.create('span', {
                 text: field.formText,
-                parent: label
+                parent: wrapper
             });
+            formSpan.style.marginLeft = '8px';
         }
-
-        // Only add dynamic value span if field.values is defined
-        if (field.values) {
-            const valueSpan = FTableDOMHelper.create('span', {
-                className: 'ftable-checkbox-dynamic-value',
-                text: ` ${displayValue}`,
-                parent: label
-            });
-
-            // Update on change
-            checkbox.addEventListener('change', () => {
-                const newValue = checkbox.checked ? '1' : '0';
-                const newText = getCheckboxText(field, newValue);
-                valueSpan.textContent = ` ${newText}`;
-            });
-        }
-
         return wrapper;
     }
 

@@ -591,4 +591,18 @@
             }
         }
     }
+
+    .ftable-yesno-check-wrapper {
+        display: flex;
+        align-items: center;
+    }
+
+    .ftable-yesno-check-text:before {
+        content: attr(data-no);
+    }
+
+    .ftable-yesno-check-input:checked ~ .ftable-yesno-check-text:before {
+        content: attr(data-yes);
+    }
+
 }

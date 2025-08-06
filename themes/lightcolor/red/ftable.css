@@ -315,6 +315,16 @@ div.ftable-column-selection-container ul.ftable-column-select-list li label span
 div.ftable-column-selection-container ul.ftable-column-select-list li input[type="checkbox"] {
   cursor: pointer;
 }
+.ftable-yesno-check-wrapper {
+  display: flex;
+  align-items: center;
+}
+.ftable-yesno-check-text:before {
+  content: attr(data-no);
+}
+.ftable-yesno-check-input:checked ~ .ftable-yesno-check-text:before {
+  content: attr(data-yes);
+}
 div.ftable-main-container {
   font-family: Verdana, Arial, Helvetica, sans-serif;
   font-size: 1em;
