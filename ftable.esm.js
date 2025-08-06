@@ -2612,9 +2612,9 @@ class FTable extends FTableEventEmitter {
     positionColumnSelectionMenu(e) {
         const self = this;
 
-        // Use clientX/clientY (relative to viewport)
-        let left = e.clientX;
-        let top = e.clientY;
+        // menu is bounded to the body for absolute positioning above other content, so safest is to use pageX/Y
+        let left = e.pageX;
+        let top = e.pageY;
 
         // Define minimum width
         const minWidth = 100;
