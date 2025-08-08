@@ -271,11 +271,15 @@ class FTableHttpClient {
             }
 
             if (Array.isArray(value)) {
+                // Clean key: remove trailing [] if present
+                const cleanKey = key.replace(/\[\]$/, '');
+                const paramKey = cleanKey + '[]'; // Always use [] suffix once
+
                 // Append each item in the array with the same key
                 // This generates query strings like `key=val1&key=val2&key=val3`
                 value.forEach(item => {
                     if (item !== null && item !== undefined) { // Ensure array items are also not null/undefined
-                        fullUrl.searchParams.append(key, item);
+                        fullUrl.searchParams.append(paramKey, item);
                     }
                 });
             } else {
@@ -301,11 +305,15 @@ class FTableHttpClient {
                 return; // Skip null or undefined values
             }
             if (Array.isArray(value)) {
+                // Clean key: remove trailing [] if present
+                const cleanKey = key.replace(/\[\]$/, '');
+                const paramKey = cleanKey + '[]'; // Always use [] suffix once
+
                 // Append each item in the array with the same key
                 // This generates query strings like `key=val1&key=val2&key=val3`
                 value.forEach(item => {
                     if (item !== null && item !== undefined) { // Ensure array items are also not null/undefined
-                        formData.append(`${key}[]`, item);
+                        formData.append(paramKey, item);
                     }
                 });
             } else {
@@ -1671,7 +1679,7 @@ class FTable extends FTableEventEmitter {
         // Build column list (visible, listable, non-hidden) fields
         this.columnList = this.fieldList.filter(name => {
             const field = this.options.fields[name];
-            return field.list !== false && field.type !== 'hidden';
+            return field.list !== false;
         });
 
         // Find key field
@@ -2845,8 +2853,8 @@ class FTable extends FTableEventEmitter {
              });
 
              if (queries.length > 0) {
-                 params['q[]'] = queries;
-                 params['opt[]'] = searchFields;
+                 params['q'] = queries;
+                 params['opt'] = searchFields;
              }
         }
 
