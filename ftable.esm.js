@@ -2999,11 +2999,12 @@ class FTable extends FTableEventEmitter {
         });
 
         const checkbox = FTableDOMHelper.create('input', {
+            className: 'norowselectonclick', // this prevents clicks on the select to also become clicks on the row
             attributes: { type: 'checkbox' },
             parent: cell
         });
 
-        checkbox.addEventListener('change', () => {
+        checkbox.addEventListener('change', (e) => {
             this.toggleRowSelection(row);
         });
     }
@@ -3505,7 +3506,9 @@ class FTable extends FTableEventEmitter {
     makeRowSelectable(row) {
         if (this.options.selectOnRowClick !== false) {
             row.addEventListener('click', (e) => {
-                if (!e.target.classList.contains('norowselectonclick')) {
+                // input elements can't select the row, nor norowselectonclick class
+                if (!['INPUT', 'BUTTON', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) &&
+                    !e.target.classList.contains('norowselectonclick')) {
                     this.toggleRowSelection(row);
                 }
             });
