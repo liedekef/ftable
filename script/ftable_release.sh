@@ -14,7 +14,7 @@ basedir=$(dirname $scriptdir)
 npm run build
 # Update/minify CSS and JS
 $scriptdir/update_css.sh
-$scriptdir/ftable_minify.sh
+#$scriptdir/ftable_minify.sh
 
 # Update version file, JS header, and package.json
 echo $release >$basedir/VERSION
