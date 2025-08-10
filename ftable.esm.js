@@ -3507,7 +3507,7 @@ class FTable extends FTableEventEmitter {
         if (this.options.selectOnRowClick !== false) {
             row.addEventListener('click', (e) => {
                 // input elements can't select the row, nor norowselectonclick class
-                if (!['INPUT', 'BUTTON', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) &&
+                if (!['INPUT', 'BUTTON', 'SELECT', 'TEXTAREA', 'A'].includes(e.target.tagName) &&
                     !e.target.classList.contains('norowselectonclick')) {
                     this.toggleRowSelection(row);
                 }
