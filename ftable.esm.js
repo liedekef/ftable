@@ -3900,11 +3900,8 @@ class FTable extends FTableEventEmitter {
     }
 
     // Public API Methods
-    reload(hard = false) {
-        if (hard) {
-            // Clear list cache
-            this.clearListCache();
-        }
+    reload() {
+        this.clearListCache();
         return this.load();
     }
 
