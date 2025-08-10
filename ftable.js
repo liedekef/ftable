@@ -1691,7 +1691,7 @@ class FTable extends FTableEventEmitter {
         // Find key field
         this.keyField = this.fieldList.find(name => this.options.fields[name].key === true);
         if (!this.keyField) {
-            this.logger.warn('No key field defined');
+            this.logger.info('No key field defined');
         }
     }
 
