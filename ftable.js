@@ -162,7 +162,11 @@ class FTableDOMHelper {
         if (options.className) {
             element.className = options.className;
         }
-        
+
+        if (options.style) {
+            element.style.cssText = options.style;
+        }
+
         if (options.attributes) {
             Object.entries(options.attributes).forEach(([key, value]) => {
                 element.setAttribute(key, value);
@@ -1660,25 +1664,13 @@ class FTable extends FTableEventEmitter {
                     field.edit = true;
                     field.type = 'hidden';
                 }
-                if (!field.hasOwnProperty('visibility')) {
-                    field.visibility = 'hidden';
-                }
+                field.visibility = field.visibility ?? 'visible';
             } else {
-                if (field.create === undefined) {
-                    field.create = true;
-                }
-                if (field.edit === undefined) {
-                    field.edit = true;
-                }
-                if (field.list === undefined) {
-                    field.list = true;
-                }
-                if (field.sorting === undefined) {
-                    field.sorting = true;
-                }
-                if (!field.hasOwnProperty('visibility')) {
-                    field.visibility = 'visible';
-                }
+                field.create = field.create ?? true;
+                field.edit = field.edit ?? true;
+                field.list = field.list ?? true;
+                field.sorting = field.sorting ?? true;
+                field.visibility = field.visibility ?? 'visible';
             }
         });
 
@@ -1867,7 +1859,7 @@ class FTable extends FTableEventEmitter {
             }
 
             // Hide column if needed
-            if (field.visibility === 'hidden') {
+            if (field.visibility === 'hidden' || field.visibility === 'separator') {
                 FTableDOMHelper.hide(th);
             }
         });
@@ -2045,7 +2037,7 @@ class FTable extends FTableEventEmitter {
             }
 
             // Hide search cell if column is hidden
-            if (field.visibility === 'hidden') {
+            if (field.visibility === 'hidden' || field.visibility === 'separator') {
                 FTableDOMHelper.hide(th);
             }
         }
@@ -2471,8 +2463,8 @@ class FTable extends FTableEventEmitter {
         this.subscribeOptionEvents();
 
         // Add toolbar buttons
-        this.createToolbarButtons();
         this.createCustomToolbarItems();
+        this.createToolbarButtons();
         
         // Keyboard shortcuts
         this.bindKeyboardEvents();
@@ -2569,6 +2561,7 @@ class FTable extends FTableEventEmitter {
             const field = this.options.fields[fieldName];
             const isVisible = field.visibility !== 'hidden';
             const isFixed = field.visibility === 'fixed';
+            const isSeparator = field.visibility === 'separator';
             const isSorted = this.isFieldSorted(fieldName);
 
             const listItem = FTableDOMHelper.create('li', {
@@ -2581,24 +2574,32 @@ class FTable extends FTableEventEmitter {
                 parent: listItem
             });
 
-            const checkbox = FTableDOMHelper.create('input', {
-                attributes: { 
-                    type: 'checkbox',
-                    id: `column-${fieldName}`
-                },
-                parent: label
-            });
+            if (!isSeparator) {
+                const checkbox = FTableDOMHelper.create('input', {
+                    attributes: { 
+                        type: 'checkbox',
+                        id: `column-${fieldName}`
+                    },
+                    parent: label
+                });
+                checkbox.checked = isVisible;
 
-            checkbox.checked = isVisible;
-
-            // Disable checkbox if column is fixed or currently sorted
-            if (isFixed || (isSorted && isVisible)) {
-                checkbox.disabled = true;
-                listItem.style.opacity = '0.6';
+                // Disable checkbox if column is fixed or currently sorted
+                if (isFixed || (isSorted && isVisible)) {
+                    checkbox.disabled = true;
+                    listItem.style.opacity = '0.6';
+                }
+                // Handle checkbox change
+                if (!checkbox.disabled) {
+                    checkbox.addEventListener('change', () => {
+                        this.setColumnVisibility(fieldName, checkbox.checked);
+                    });
+                }
             }
 
             const labelText = FTableDOMHelper.create('span', {
                 text: field.title || fieldName,
+                style: isSeparator ? 'font-weight: bold;' : null,
                 parent: label
             });
 
@@ -2613,12 +2614,6 @@ class FTable extends FTableEventEmitter {
                 sortIndicator.style.color = '#666';
             }
 
-            // Handle checkbox change
-            if (!checkbox.disabled) {
-                checkbox.addEventListener('change', () => {
-                    this.setColumnVisibility(fieldName, checkbox.checked);
-                });
-            }
         });
     }
 
@@ -2726,7 +2721,7 @@ class FTable extends FTableEventEmitter {
         if (!this.options.toolbar || !this.options.toolbar.items) return;
 
         this.options.toolbar.items.forEach(item => {
-            const button = FTableDOMHelper.create('button', {
+            const button = FTableDOMHelper.create('span', {
                 className: `ftable-toolbar-item ftable-toolbar-item-custom ${item.buttonClass || ''}`,
                 parent: this.elements.toolbarDiv
             });
@@ -2754,6 +2749,7 @@ class FTable extends FTableEventEmitter {
             if (item.text) {
                 FTableDOMHelper.create('span', {
                     text: item.text,
+                    className: `ftable-toolbar-item-text ftable-toolbar-item-custom-text ${item.buttonTextClass || ''}`,
                     parent: button
                 });
             }
