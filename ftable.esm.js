@@ -1497,6 +1497,50 @@ class FTable extends FTableEventEmitter {
 
         // Add essential CSS if not already present
         //this.addEssentialCSS();
+
+        // now make sure all tables have a % width
+        this.initColumnWidths();
+    }
+
+    initColumnWidths() {
+        const visibleFields = this.columnList.filter(fieldName => {
+            const field = this.options.fields[fieldName];
+            return field.visibility !== 'hidden';
+        });
+
+        const count = visibleFields.length;
+        visibleFields.forEach(fieldName => {
+            const field = this.options.fields[fieldName];
+            // Use configured width or equal distribution
+            //field.width = field.width || `${(100 / count).toFixed(2)}%`;
+            field.width = field.width || `${(100 / count)}%`;
+        });
+    }
+
+    normalizeColumnWidths() {
+        const container = this.elements.mainContainer;
+        const visibleHeaders = this.columnList
+            .map(fieldName => ({
+                th: this.elements.table.querySelector(`[data-field-name="${fieldName}"]`),
+                field: this.options.fields[fieldName]
+            }))
+            .filter(item => item.th && item.field.visibility !== 'hidden');
+
+        if (visibleHeaders.length === 0) return;
+
+        const totalContainerWidth = container.offsetWidth;
+        let totalPercent = 0;
+
+        visibleHeaders.forEach(item => {
+            const widthPct = (item.th.offsetWidth / totalContainerWidth) * 100;
+            //item.field.width = `${widthPct.toFixed(2)}%`;
+            item.field.width = `${widthPct}%`;
+            item.th.style.width = item.field.width;
+            totalPercent += widthPct;
+        });
+
+        // Optional: adjust for rounding drift
+        // (not critical, but can help)
     }
 
     parseDefaultSorting(sortStr) {
@@ -1897,7 +1941,10 @@ class FTable extends FTableEventEmitter {
 
         // Add empty cell for selecting column if enabled
         if (this.options.selecting && this.options.selectingCheckboxes) {
-            FTableDOMHelper.create('th', { parent: searchRow });
+            FTableDOMHelper.create('th', {
+                className: 'ftable-toolbarsearch-column-header',
+                parent: searchRow
+            });
         }
 
         // Add search input cells for data columns
@@ -2040,7 +2087,7 @@ class FTable extends FTableEventEmitter {
         if (this.options.toolbarsearch && this.options.toolbarreset) {
             // Add reset button cell
             const resetTh = FTableDOMHelper.create('th', {
-                className: 'ftable-toolbarsearch-reset',
+                className: 'ftable-toolbarsearch-column-header ftable-toolbarsearch-reset',
                 parent: searchRow
             });
 
@@ -2157,8 +2204,18 @@ class FTable extends FTableEventEmitter {
         this.load();
     }
 
+    getNextVisibleHeader(th) {
+        const headers = Array.from(this.elements.table.querySelectorAll('thead th:not(.ftable-command-column-header, .ftable-toolbarsearch-column-header)'));
+        const index = headers.indexOf(th);
+        for (let i = index + 1; i < headers.length; i++) {
+            if (headers[i].offsetParent !== null) { // visible
+                return headers[i];
+            }
+        }
+        return null;
+    }
+
     makeColumnResizable(th, container) {
-        // Create resize bar if it doesn't exist
         if (!this.elements.resizeBar) {
             this.elements.resizeBar = FTableDOMHelper.create('div', {
                 className: 'ftable-column-resize-bar',
@@ -2175,59 +2232,88 @@ class FTable extends FTableEventEmitter {
         let isResizing = false;
         let startX = 0;
         let startWidth = 0;
+        let containerRect;
+        let nextTh = null;
+        let nextStartWidth = 0;
+        let nextField = null;
 
         resizeHandler.addEventListener('mousedown', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            
+
             isResizing = true;
+
+            // Capture layout
+            containerRect = this.elements.mainContainer.getBoundingClientRect();
             startX = e.clientX;
             startWidth = th.offsetWidth;
-            
-            // Show resize bar
-            const rect = th.getBoundingClientRect();
-            const containerRect = this.elements.mainContainer.getBoundingClientRect();
-            
-            this.elements.resizeBar.style.left = (rect.right - containerRect.left) + 'px';
-            this.elements.resizeBar.style.top = (rect.top - containerRect.top) + 'px';
+
+            // Find next visible column
+            nextTh = this.getNextVisibleHeader(th);
+            if (nextTh) {
+                nextStartWidth = nextTh.offsetWidth;
+                const fieldName = nextTh.dataset.fieldName;
+                nextField = this.options.fields[fieldName];
+            } else {
+                return;
+            }
+
+            // Position resize bar
+            const thRect = th.getBoundingClientRect();
+            this.elements.resizeBar.style.left = (thRect.right - containerRect.left) + 'px';
+            this.elements.resizeBar.style.top = (thRect.top - containerRect.top) + 'px';
             this.elements.resizeBar.style.height = this.elements.table.offsetHeight + 'px';
+
             FTableDOMHelper.show(this.elements.resizeBar);
-            
+
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
         });
 
         const handleMouseMove = (e) => {
             if (!isResizing) return;
-            
-            const diff = e.clientX - startX;
-            const newWidth = Math.max(50, startWidth + diff); // Minimum 50px width
-            
-            // Update resize bar position
-            const containerRect = this.elements.mainContainer.getBoundingClientRect();
+
+            // Move resize bar with mouse
             this.elements.resizeBar.style.left = (e.clientX - containerRect.left) + 'px';
         };
 
         const handleMouseUp = (e) => {
             if (!isResizing) return;
-            
             isResizing = false;
-            const diff = e.clientX - startX;
-            const newWidth = Math.max(50, startWidth + diff);
-            
-            // Apply new width
-            th.style.width = newWidth + 'px';
-            
-            // Hide resize bar
-            FTableDOMHelper.hide(this.elements.resizeBar);
-            
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-            
-            // Save column width preference if enabled
+
+            const diff = e.clientX - startX; // px
+            const totalWidth = containerRect.width;
+
+            // Current column new width in px
+            const newCurrentPx = Math.max(50, startWidth + diff);
+            const newCurrentPct = (newCurrentPx / totalWidth) * 100;
+
+            // Next column adjustment
+            if (nextTh) {
+                const newNextPx = Math.max(50, nextStartWidth - diff); // opposite delta
+                const newNextPct = (newNextPx / totalWidth) * 100;
+
+                // Apply to next
+                nextField.width = `${newNextPct.toFixed(2)}%`;
+                nextTh.style.width = nextField.width;
+            }
+
+            // Apply to current
+            const field = this.options.fields[th.dataset.fieldName];
+            field.width = `${newCurrentPct.toFixed(2)}%`;
+            th.style.width = field.width;
+
+            // Final normalization (optional, but safe)
+            this.normalizeColumnWidths();
+
+            // Save
             if (this.options.saveUserPreferences) {
                 this.saveColumnSettings();
             }
+
+            FTableDOMHelper.hide(this.elements.resizeBar);
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
         };
     }
 
@@ -2814,6 +2900,7 @@ class FTable extends FTableEventEmitter {
         // Update sorting display
         this.renderSortingInfo();
 
+        this.normalizeColumnWidths();
     }
 
     buildLoadParams() {
