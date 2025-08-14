@@ -3272,9 +3272,15 @@ class FTable extends FTableEventEmitter {
 
     findOptionByValue(options, value) {
         if (Array.isArray(options)) {
-            return options.find(opt => 
+            return options.find(opt =>
                 (opt.Value || opt.value) === value || opt === value
             );
+        }
+
+        if (typeof options === 'object' && options !== null) {
+            if (options.hasOwnProperty(value)) {
+                return options[value]
+            }
         }
         return null;
     }
