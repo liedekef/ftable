@@ -584,14 +584,3 @@ form.ftable-dialog-form {
   font-weight: 400;
   font-size: 14px;
 }
-div.ftable-busy-message {
-  font-family: 'Segoe UI Semilight', 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
-  font-weight: 300;
-  font-size: 16px;
-  border: 1px solid #fff;
-  padding: 5px 5px 5px 58px;
-  color: #fff;
-  background: url('../blue/loading.gif') no-repeat;
-  background-color: #0b67cd;
-  background-position: 8px;
-}
