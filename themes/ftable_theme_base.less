@@ -130,11 +130,6 @@
             position: relative;
             text-align: left;
 
-            .ftable-close-button
-            {
-                .dock(right);
-            }
-
 			// Toolbar -------------------------------------------------------------
 
 			div.ftable-toolbar
@@ -161,7 +156,22 @@
 						vertical-align: middle;
 						width: 16px;
 						height: 16px;
+
 					}
+
+                    span.ftable-toolbar-item-icon.ftable-toolbar-item-add-record {
+                        display: inline-flex;
+                        align-items: center;
+                        background-color: transparent;
+                        justify-content: center;
+                        width: 16px;
+                        height: 16px;
+
+                        &::before {
+                            content: "➕";
+                            font-size: 14px;
+                        }
+                    }
 
 					span.ftable-toolbar-item-text
 					{
@@ -169,12 +179,8 @@
 						margin: 2px;
 						vertical-align: middle;
 					}
-				}
-			}
 
-			.ftable-close-button+div.ftable-toolbar
-			{
-				margin-right: 30px;
+				}
 			}
         }
 
@@ -281,6 +287,55 @@
                                 cursor: pointer;
                             }
                         }
+
+                        .ftable-edit-command-button
+                        {
+                            width: 16px;
+                            height: 16px;
+                            background-color: transparent;
+                            &::before {
+                                content: "📝";
+                                font-size: 14px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                width: 100%;
+                                height: 100%;
+                            }
+                        }
+
+                        .ftable-clone-command-button
+                        {
+                            width: 16px;
+                            height: 16px;
+                            background-color: transparent;
+                            &::before {
+                                content: "📋";
+                                font-size: 14px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                width: 100%;
+                                height: 100%;
+                            }
+                        }
+
+                        .ftable-delete-command-button
+                        {
+                            width: 16px;
+                            height: 16px;
+                            background-color: transparent;
+                            &::before {
+                                content: "🗑️ ";
+                                font-size: 14px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                width: 100%;
+                                height: 100%;
+                            }
+                        }
+
                     }
 
                     &.ftable-no-data-row
@@ -604,6 +659,27 @@
 
     .ftable-yesno-check-input:checked ~ .ftable-yesno-check-text:before {
         content: attr(data-yes);
+    }
+
+    .ftable-sortable-text {
+        padding-right: 20px; /* Space for sort indicator */
+    }
+    div.ftable-main-container table.ftable thead th.ftable-column-header-sortable div.ftable-column-header-container::after {
+        content: " ⇅";
+        position: absolute;
+        right: 3px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+        font-size: 1em;
+    }
+    div.ftable-main-container table.ftable thead th.ftable-column-header-sorted-asc div.ftable-column-header-container::after {
+        content: " ⇡";
+        font-weight: bold;
+    }
+    div.ftable-main-container table.ftable thead th.ftable-column-header-sorted-desc div.ftable-column-header-container::after {
+        content: " ⇣";
+        font-weight: bold;
     }
 
 }

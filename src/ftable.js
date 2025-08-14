@@ -1874,7 +1874,7 @@ class FTable extends FTableEventEmitter {
                 container.setAttribute('title', field.tooltip);
             }
 
-            FTableDOMHelper.create('span', {
+            const textHeader = FTableDOMHelper.create('span', {
                 className: 'ftable-column-header-text',
                 text: field.title || fieldName,
                 parent: container
@@ -1882,6 +1882,10 @@ class FTable extends FTableEventEmitter {
 
             // Make sortable if enabled
             if (this.options.sorting && field.sorting !== false) {
+                // Add some empty spaces after the text so the background icon has room next to it
+                // one could play with css and ::after, but then the width calculation of columns borks, resize bar is off etc ...
+                //textHeader.innerHTML += '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+                FTableDOMHelper.addClass(textHeader, 'ftable-sortable-text'); // Add class for spacing
                 FTableDOMHelper.addClass(th, 'ftable-column-header-sortable');
                 th.addEventListener('click', (e) => {
                     e.preventDefault();

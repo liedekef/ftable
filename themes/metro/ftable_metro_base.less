@@ -143,20 +143,6 @@
                 color: #fff;
             }
 
-            .ftable-close-button
-            {
-                .dock(right, 8px);
-                .opacity(0.5);
-                background: url('close.png') no-repeat;
-                width: 16px;
-                height: 16px;
-
-                &:hover
-                {
-                    .opacity(1);
-                }
-            }
-
 			// Toolbar -------------------------------------------------------------
 
 			div.ftable-toolbar
@@ -167,14 +153,6 @@
 				{
 					background-color: @table-title-background + #0A0A0A;
 					color: white;
-
-					&.ftable-toolbar-item-add-record
-					{
-						span.ftable-toolbar-item-icon
-						{
-							background-image: url('add.png');
-						}
-					}
 
 					&.ftable-toolbar-item-hover
 					{
@@ -223,29 +201,6 @@
                         }
                     }
 
-                    &.ftable-column-header-sortable
-                    {
-                        div.ftable-column-header-container
-                        {
-                            background: url('column-sortable.png') no-repeat right;
-                        }
-                    }
-
-                    &.ftable-column-header-sorted-asc
-                    {
-                        div.ftable-column-header-container
-                        {
-                            background: url('column-asc.png') no-repeat right;
-                        }
-                    }
-
-                    &.ftable-column-header-sorted-desc
-                    {
-                        div.ftable-column-header-container
-                        {
-                            background: url('column-desc.png') no-repeat right;
-                        }
-                    }
                 }
             }
 
@@ -265,45 +220,6 @@
 						> td
 						{
 							padding: 4px;
-
-							> .ftable-edit-command-button
-							{
-								background: url('edit.png') no-repeat;
-								width: 16px;
-								height: 16px;
-								opacity: 0.4;
-
-								&:hover
-								{
-									opacity: 0.8;
-								}
-							}
-
-							> .ftable-clone-command-button
-							{
-								background: url('clone.png') no-repeat;
-								width: 16px;
-								height: 16px;
-								opacity: 0.4;
-
-								&:hover
-								{
-									opacity: 0.8;
-								}
-							}
-
-							> .ftable-delete-command-button
-							{
-								background: url('delete.png') no-repeat;
-								width: 16px;
-								height: 16px;
-								opacity: 0.4;
-
-								&:hover
-								{
-									opacity: 0.8;
-								}
-							}
 						}
 					}
 

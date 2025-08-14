@@ -55,12 +55,6 @@ div.ftable-main-container div.ftable-title {
   position: relative;
   text-align: left;
 }
-div.ftable-main-container div.ftable-title .ftable-close-button {
-  right: 0px;
-  top: 0px;
-  bottom: 0px;
-  position: absolute;
-}
 div.ftable-main-container div.ftable-title div.ftable-toolbar {
   bottom: 0px;
   right: 0px;
@@ -84,13 +78,22 @@ div.ftable-main-container div.ftable-title div.ftable-toolbar .ftable-toolbar-it
   width: 16px;
   height: 16px;
 }
+div.ftable-main-container div.ftable-title div.ftable-toolbar .ftable-toolbar-item span.ftable-toolbar-item-icon.ftable-toolbar-item-add-record {
+  display: inline-flex;
+  align-items: center;
+  background-color: transparent;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+div.ftable-main-container div.ftable-title div.ftable-toolbar .ftable-toolbar-item span.ftable-toolbar-item-icon.ftable-toolbar-item-add-record::before {
+  content: "➕";
+  font-size: 14px;
+}
 div.ftable-main-container div.ftable-title div.ftable-toolbar .ftable-toolbar-item span.ftable-toolbar-item-text {
   display: inline-block;
   margin: 2px;
   vertical-align: middle;
-}
-div.ftable-main-container div.ftable-title .ftable-close-button + div.ftable-toolbar {
-  margin-right: 30px;
 }
 div.ftable-main-container table.ftable {
   width: 100%;
@@ -165,6 +168,48 @@ div.ftable-main-container table.ftable tbody tr > td.ftable-selecting-column {
 }
 div.ftable-main-container table.ftable tbody tr > td.ftable-selecting-column input {
   cursor: pointer;
+}
+div.ftable-main-container table.ftable tbody tr > td .ftable-edit-command-button {
+  width: 16px;
+  height: 16px;
+  background-color: transparent;
+}
+div.ftable-main-container table.ftable tbody tr > td .ftable-edit-command-button::before {
+  content: "📝";
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+div.ftable-main-container table.ftable tbody tr > td .ftable-clone-command-button {
+  width: 16px;
+  height: 16px;
+  background-color: transparent;
+}
+div.ftable-main-container table.ftable tbody tr > td .ftable-clone-command-button::before {
+  content: "📋";
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+div.ftable-main-container table.ftable tbody tr > td .ftable-delete-command-button {
+  width: 16px;
+  height: 16px;
+  background-color: transparent;
+}
+div.ftable-main-container table.ftable tbody tr > td .ftable-delete-command-button::before {
+  content: "🗑️ ";
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 div.ftable-main-container table.ftable tbody tr.ftable-no-data-row {
   text-align: center;
@@ -374,6 +419,27 @@ div.ftable-column-selection-container ul.ftable-column-select-list li input[type
 .ftable-yesno-check-input:checked ~ .ftable-yesno-check-text:before {
   content: attr(data-yes);
 }
+.ftable-sortable-text {
+  padding-right: 20px;
+  /* Space for sort indicator */
+}
+div.ftable-main-container table.ftable thead th.ftable-column-header-sortable div.ftable-column-header-container::after {
+  content: " ⇅";
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 1em;
+}
+div.ftable-main-container table.ftable thead th.ftable-column-header-sorted-asc div.ftable-column-header-container::after {
+  content: " ⇡";
+  font-weight: bold;
+}
+div.ftable-main-container table.ftable thead th.ftable-column-header-sorted-desc div.ftable-column-header-container::after {
+  content: " ⇣";
+  font-weight: bold;
+}
 div.ftable-main-container {
   font-family: 'Segoe UI Semilight', 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
   font-weight: 300;
@@ -392,21 +458,6 @@ div.ftable-main-container div.ftable-title div.ftable-title-text {
   line-height: 34px;
   color: #fff;
 }
-div.ftable-main-container div.ftable-title .ftable-close-button {
-  right: 8px;
-  top: 8px;
-  bottom: 8px;
-  position: absolute;
-  opacity: 0.5;
-  filter: alpha(opacity=50);
-  background: url('../close.png') no-repeat;
-  width: 16px;
-  height: 16px;
-}
-div.ftable-main-container div.ftable-title .ftable-close-button:hover {
-  opacity: 1;
-  filter: alpha(opacity=100);
-}
 div.ftable-main-container div.ftable-title div.ftable-toolbar {
   bottom: 0px;
   right: 0px;
@@ -415,9 +466,6 @@ div.ftable-main-container div.ftable-title div.ftable-toolbar {
 div.ftable-main-container div.ftable-title div.ftable-toolbar span.ftable-toolbar-item {
   background-color: #6b4214;
   color: white;
-}
-div.ftable-main-container div.ftable-title div.ftable-toolbar span.ftable-toolbar-item.ftable-toolbar-item-add-record span.ftable-toolbar-item-icon {
-  background-image: url('../add.png');
 }
 div.ftable-main-container div.ftable-title div.ftable-toolbar span.ftable-toolbar-item.ftable-toolbar-item-hover {
   background-color: #72491b;
@@ -447,15 +495,6 @@ div.ftable-main-container table.ftable > thead th.ftable-column-header div.ftabl
 div.ftable-main-container table.ftable > thead th.ftable-column-header div.ftable-column-header-container span.ftable-column-header-text {
   margin-top: 2px;
 }
-div.ftable-main-container table.ftable > thead th.ftable-column-header-sortable div.ftable-column-header-container {
-  background: url('../column-sortable.png') no-repeat right;
-}
-div.ftable-main-container table.ftable > thead th.ftable-column-header-sorted-asc div.ftable-column-header-container {
-  background: url('../column-asc.png') no-repeat right;
-}
-div.ftable-main-container table.ftable > thead th.ftable-column-header-sorted-desc div.ftable-column-header-container {
-  background: url('../column-desc.png') no-repeat right;
-}
 div.ftable-main-container table.ftable > tbody > tr {
   background-color: #fff;
 }
@@ -464,33 +503,6 @@ div.ftable-main-container table.ftable > tbody > tr > td {
 }
 div.ftable-main-container table.ftable > tbody > tr.ftable-data-row > td {
   padding: 4px;
-}
-div.ftable-main-container table.ftable > tbody > tr.ftable-data-row > td > .ftable-edit-command-button {
-  background: url('../edit.png') no-repeat;
-  width: 16px;
-  height: 16px;
-  opacity: 0.4;
-}
-div.ftable-main-container table.ftable > tbody > tr.ftable-data-row > td > .ftable-edit-command-button:hover {
-  opacity: 0.8;
-}
-div.ftable-main-container table.ftable > tbody > tr.ftable-data-row > td > .ftable-clone-command-button {
-  background: url('../clone.png') no-repeat;
-  width: 16px;
-  height: 16px;
-  opacity: 0.4;
-}
-div.ftable-main-container table.ftable > tbody > tr.ftable-data-row > td > .ftable-clone-command-button:hover {
-  opacity: 0.8;
-}
-div.ftable-main-container table.ftable > tbody > tr.ftable-data-row > td > .ftable-delete-command-button {
-  background: url('../delete.png') no-repeat;
-  width: 16px;
-  height: 16px;
-  opacity: 0.4;
-}
-div.ftable-main-container table.ftable > tbody > tr.ftable-data-row > td > .ftable-delete-command-button:hover {
-  opacity: 0.8;
 }
 div.ftable-main-container table.ftable > tbody > tr.ftable-row-even {
   background-color: #f9f9f9;

@@ -33,37 +33,12 @@
                 font-weight: bold;
             }
 
-            .ftable-close-button
-            {
-                .dock(right, 6px);
-                .opacity(0.8);
-                background: url('close.png') no-repeat;
-                width: 22px;
-                height: 22px;
-
-                &:hover
-                {
-                    .opacity(1);
-                }
-            }
-
 			// Toolbar -------------------------------------------------------------
 
 			div.ftable-toolbar
 			{
 				.dock(bottom-right);
 				line-height:26px;
-
-				span.ftable-toolbar-item
-				{
-					&.ftable-toolbar-item-add-record
-					{
-						span.ftable-toolbar-item-icon
-						{
-							background-image: url('add.png');
-						}
-					}
-				}
 			}
         }
 
@@ -118,20 +93,6 @@
 						padding: 5px;
                     }
 
-                    &.ftable-column-header-sortable div.ftable-column-header-container
-                    {
-                        background: url('column-sortable.png') no-repeat right;
-                    }
-
-                    &.ftable-column-header-sorted-asc div.ftable-column-header-container
-                    {
-                        background: url('column-asc.png') no-repeat right;
-                    }
-
-                    &.ftable-column-header-sorted-desc div.ftable-column-header-container
-                    {
-                        background: url('column-desc.png') no-repeat right;
-                    }
                 }
             }
 
@@ -153,26 +114,6 @@
                             border-left: none;
                         }
 
-                        .ftable-edit-command-button
-                        {
-                            background: url('edit.png') no-repeat;
-                            width: 16px;
-                            height: 16px;
-                        }
-
-                        .ftable-clone-command-button
-                        {
-                            background: url('clone.png') no-repeat;
-                            width: 16px;
-                            height: 16px;
-                        }
-
-                        .ftable-delete-command-button
-                        {
-                            background: url('delete.png') no-repeat;
-                            width: 16px;
-                            height: 16px;
-                        }
                     }
 
                     &.ftable-row-even
