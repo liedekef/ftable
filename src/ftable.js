@@ -2208,7 +2208,7 @@ class FTable extends FTableEventEmitter {
     }
 
     getNextVisibleHeader(th) {
-        const headers = Array.from(this.elements.table.querySelectorAll('thead th:not(.ftable-command-column-header, .ftable-toolbarsearch-column-header)'));
+        const headers = Array.from(this.elements.table.querySelectorAll('thead th.ftable-column-header-resizable'));
         const index = headers.indexOf(th);
         for (let i = index + 1; i < headers.length; i++) {
             if (headers[i].offsetParent !== null) { // visible
@@ -2219,6 +2219,7 @@ class FTable extends FTableEventEmitter {
     }
 
     makeColumnResizable(th, container) {
+        FTableDOMHelper.addClass(th, 'ftable-column-header-resizable');
         if (!this.elements.resizeBar) {
             this.elements.resizeBar = FTableDOMHelper.create('div', {
                 className: 'ftable-column-resize-bar',
@@ -2257,8 +2258,8 @@ class FTable extends FTableEventEmitter {
                 nextStartWidth = nextTh.offsetWidth;
                 const fieldName = nextTh.dataset.fieldName;
                 nextField = this.options.fields[fieldName];
-            } else {
-                return;
+         //  } else {
+           //     return;
             }
 
             // Position resize bar
