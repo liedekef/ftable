@@ -1890,9 +1890,8 @@ class FTable extends FTableEventEmitter {
                 FTableDOMHelper.addClass(th, 'ftable-column-header-sortable');
                 th.addEventListener('click', (e) => {
                     e.preventDefault();
-                    // Store event for multiSortingCtrlKey logic
-                    this.lastSortEvent = e;
-                    this.sortByColumn(fieldName);
+                    const isCtrlPressed = e.ctrlKey || e.metaKey; // metaKey for Mac
+                    this.sortByColumn(fieldName, isCtrlPressed);
                 });
             }
 
@@ -2208,7 +2207,7 @@ class FTable extends FTableEventEmitter {
         this.load();
     }
 
-    getNextVisibleHeader(th) {
+    getNextResizableHeader(th) {
         const headers = Array.from(this.elements.table.querySelectorAll('thead th.ftable-column-header-resizable'));
         const index = headers.indexOf(th);
         for (let i = index + 1; i < headers.length; i++) {
@@ -2254,7 +2253,7 @@ class FTable extends FTableEventEmitter {
             startWidth = th.offsetWidth;
 
             // Find next visible column
-            nextTh = this.getNextVisibleHeader(th);
+            nextTh = this.getNextResizableHeader(th);
             if (nextTh) {
                 nextStartWidth = nextTh.offsetWidth;
                 const fieldName = nextTh.dataset.fieldName;
@@ -3686,7 +3685,7 @@ class FTable extends FTableEventEmitter {
     }
 
     // Sorting Methods
-    sortByColumn(fieldName) {
+    sortByColumn(fieldName, isCtrlPressed = false) {
         const field = this.options.fields[fieldName];
 
         if (!field || field.sorting === false) return;
@@ -3706,9 +3705,6 @@ class FTable extends FTableEventEmitter {
         } else {
             this.state.sorting.push({ fieldName, direction: newDirection });
         }
-
-        // Handle multiSortingCtrlKey: did user press Ctrl/Cmd?
-        const isCtrlPressed = this.lastSortEvent?.ctrlKey || this.lastSortEvent?.metaKey; // metaKey for Mac
 
         if (this.options.multiSorting) {
             // If multiSorting is enabled, respect multiSortingCtrlKey
