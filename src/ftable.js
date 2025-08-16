@@ -4063,23 +4063,71 @@ class FTable extends FTableEventEmitter {
 
     // CSV Export functionality
     exportToCSV(filename = 'table-data.csv') {
-        const headers = this.columnList.map(fieldName => {
-            const field = this.options.fields[fieldName];
-            return field.title || fieldName;
-        });
+        // Create a clean table clone from the DOM
+        const tableClone = this.elements.table.cloneNode(true);
+        const csvRows = [];
 
-        const rows = this.state.records.map(record => {
-            return this.columnList.map(fieldName => {
-                const value = this.getDisplayText(record, fieldName);
-                // Escape CSV values
-                return `"${String(value).replace(/"/g, '""')}"`;
-            });
-        });
+        // Helper to format CSV cell (escape quotes, wrap in quotes)
+        const formatCSV = (text) => {
+            const str = String(text || '').replace(/"/g, '""');
+                return `"${str}"`;
+            };
 
-        const csvContent = [
-            headers.map(h => `"${h}"`).join(','),
-            ...rows.map(row => row.join(','))
-        ].join('\n');
+        // 1. Extract headers from visible, non-command columns
+        const headerCells = tableClone.querySelectorAll('thead th');
+        const headerRow = [];
+        for (const th of headerCells) {
+            if (th.classList.contains('ftable-command-column-header') ||
+                th.style.display === 'none' ||
+                th.offsetParent === null) {
+                continue;
+            }
+            const text = th.textContent.trim();
+            headerRow.push(formatCSV(text));
+        }
+        csvRows.push(headerRow.join(','));
+
+        // 2. Extract rows from visible, non-command cells
+        const dataRows = tableClone.querySelectorAll('tbody tr');
+        for (const tr of dataRows) {
+            // Skip hidden rows
+            if (tr.style.display === 'none' || tr.offsetParent === null) {
+                continue;
+            }
+
+            const rowCells = tr.querySelectorAll('td');
+            const csvRow = [];
+            let hasData = false;
+
+            for (const td of rowCells) {
+                if (td.classList.contains('ftable-command-column') ||
+                    td.style.display === 'none' ||
+                    td.offsetParent === null) {
+                    continue;
+                }
+
+                // Clean up: remove buttons, images
+                if (td.querySelector('img, button, input, select')) {
+                    td.innerHTML = td.textContent; // Strip HTML
+                }
+
+                // Replace <br> with \n
+                const html = td.innerHTML;
+                const withLineBreaks = html.replace(/<br\s*\/?>/gi, '\n');
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = withLineBreaks;
+                const text = tempDiv.textContent || '';
+
+                csvRow.push(formatCSV(text));
+                hasData = true;
+            }
+
+            if (hasData) {
+                csvRows.push(csvRow.join(','));
+            }
+        }
+
+        const csvContent = csvRows.join('\n');
 
         // Create and trigger download
         const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
