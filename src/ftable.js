@@ -1524,7 +1524,7 @@ class FTable extends FTableEventEmitter {
                 th: this.elements.table.querySelector(`[data-field-name="${fieldName}"]`),
                 field: this.options.fields[fieldName]
             }))
-            .filter(item => item.th && item.field.visibility !== 'hidden' && field.visibility !== 'separator');
+            .filter(item => item.th && item.field.visibility !== 'hidden' && item.field.visibility !== 'separator');
 
         if (visibleHeaders.length === 0) return;
 
