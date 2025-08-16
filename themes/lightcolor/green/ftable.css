@@ -124,7 +124,7 @@ div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .f
 }
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container::after {
   content: '▼';
-  right: 1px;
+  right: 0px;
 }
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable.ftable-column-header-sorted-asc .ftable-column-header-container::before {
   color: #222;
