@@ -1836,7 +1836,7 @@ class FTable extends FTableEventEmitter {
         // Add selecting column if enabled
         if (this.options.selecting && this.options.selectingCheckboxes) {
             const selectHeader = FTableDOMHelper.create('th', {
-                className: `ftable-column-header ftable-column-header-select`,
+                className: `ftable-command-column-header ftable-column-header-select`,
                 parent: headerRow
             });
 
@@ -4078,8 +4078,8 @@ class FTable extends FTableEventEmitter {
         const headerRow = [];
         for (const th of headerCells) {
             if (th.classList.contains('ftable-command-column-header') ||
-                th.style.display === 'none' ||
-                th.offsetParent === null) {
+                th.classList.contains('ftable-toolbarsearch-column-header') ||
+                th.style.display === 'none') {
                 continue;
             }
             const text = th.textContent.trim();
@@ -4091,7 +4091,7 @@ class FTable extends FTableEventEmitter {
         const dataRows = tableClone.querySelectorAll('tbody tr');
         for (const tr of dataRows) {
             // Skip hidden rows
-            if (tr.style.display === 'none' || tr.offsetParent === null) {
+            if (tr.style.display === 'none') {
                 continue;
             }
 
@@ -4101,8 +4101,7 @@ class FTable extends FTableEventEmitter {
 
             for (const td of rowCells) {
                 if (td.classList.contains('ftable-command-column') ||
-                    td.style.display === 'none' ||
-                    td.offsetParent === null) {
+                    td.style.display === 'none') {
                     continue;
                 }
 
