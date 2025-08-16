@@ -148,6 +148,48 @@ div.ftable-main-container table.ftable thead th.ftable-column-header-select inpu
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable {
   cursor: pointer;
 }
+div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-sortable-text {
+  padding-right: 25px;
+  /* Space for sort indicator */
+}
+div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container {
+  position: relative;
+}
+div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container::before,
+div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.1em;
+  color: #999;
+  opacity: 0.7;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container::before {
+  content: '▲';
+  right: 12px;
+}
+div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container::after {
+  content: '▼';
+  right: 5px;
+}
+div.ftable-main-container table.ftable thead th.ftable-column-header-sortable.ftable-column-header-sorted-asc .ftable-column-header-container::before {
+  color: #222;
+  opacity: 1;
+  font-weight: bold;
+}
+div.ftable-main-container table.ftable thead th.ftable-column-header-sortable.ftable-column-header-sorted-asc .ftable-column-header-container::after {
+  opacity: 0.7;
+}
+div.ftable-main-container table.ftable thead th.ftable-column-header-sortable.ftable-column-header-sorted-desc .ftable-column-header-container::after {
+  color: #222;
+  opacity: 1;
+  font-weight: bold;
+}
+div.ftable-main-container table.ftable thead th.ftable-column-header-sortable.ftable-column-header-sorted-desc .ftable-column-header-container::before {
+  opacity: 0.7;
+}
 div.ftable-main-container table.ftable tbody tr > td .ftable-command-button {
   margin: 5px;
   padding: 0px;
@@ -418,27 +460,6 @@ div.ftable-column-selection-container ul.ftable-column-select-list li input[type
 }
 .ftable-yesno-check-input:checked ~ .ftable-yesno-check-text:before {
   content: attr(data-yes);
-}
-.ftable-sortable-text {
-  padding-right: 20px;
-  /* Space for sort indicator */
-}
-div.ftable-main-container table.ftable thead th.ftable-column-header-sortable div.ftable-column-header-container::after {
-  content: " ⇅";
-  position: absolute;
-  right: 3px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #999;
-  font-size: 1em;
-}
-div.ftable-main-container table.ftable thead th.ftable-column-header-sorted-asc div.ftable-column-header-container::after {
-  content: " ⇡";
-  font-weight: bold;
-}
-div.ftable-main-container table.ftable thead th.ftable-column-header-sorted-desc div.ftable-column-header-container::after {
-  content: " ⇣";
-  font-weight: bold;
 }
 div.ftable-main-container {
   font-family: 'Segoe UI Semilight', 'Open Sans', Verdana, Arial, Helvetica, sans-serif;

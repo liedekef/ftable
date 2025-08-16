@@ -1498,6 +1498,7 @@ class FTable extends FTableEventEmitter {
         
         this.bindEvents();
         
+        this.updateSortingHeaders();
         this.renderSortingInfo();
 
         // Add essential CSS if not already present
@@ -1888,9 +1889,6 @@ class FTable extends FTableEventEmitter {
 
             // Make sortable if enabled
             if (this.options.sorting && field.sorting !== false) {
-                // Add some empty spaces after the text so the background icon has room next to it
-                // one could play with css and ::after, but then the width calculation of columns borks, resize bar is off etc ...
-                //textHeader.innerHTML += '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
                 FTableDOMHelper.addClass(textHeader, 'ftable-sortable-text'); // Add class for spacing
                 FTableDOMHelper.addClass(th, 'ftable-column-header-sortable');
                 th.addEventListener('click', (e) => {
