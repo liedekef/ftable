@@ -101,7 +101,7 @@ div.ftable-main-container table.ftable thead th.ftable-column-header-sortable {
   cursor: pointer;
 }
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-sortable-text {
-  padding-right: 25px;
+  padding-right: 20px;
   /* Space for sort indicator */
 }
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container {
@@ -120,11 +120,11 @@ div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .f
 }
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container::before {
   content: '▲';
-  right: 12px;
+  right: 7px;
 }
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container::after {
   content: '▼';
-  right: 5px;
+  right: 1px;
 }
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable.ftable-column-header-sorted-asc .ftable-column-header-container::before {
   color: #222;
