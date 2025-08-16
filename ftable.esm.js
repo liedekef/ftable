@@ -1506,7 +1506,7 @@ class FTable extends FTableEventEmitter {
     initColumnWidths() {
         const visibleFields = this.columnList.filter(fieldName => {
             const field = this.options.fields[fieldName];
-            return field.visibility !== 'hidden';
+            return field.visibility !== 'hidden' && field.visibility !== 'separator';
         });
 
         const count = visibleFields.length;
@@ -1525,7 +1525,7 @@ class FTable extends FTableEventEmitter {
                 th: this.elements.table.querySelector(`[data-field-name="${fieldName}"]`),
                 field: this.options.fields[fieldName]
             }))
-            .filter(item => item.th && item.field.visibility !== 'hidden');
+            .filter(item => item.th && item.field.visibility !== 'hidden' && field.visibility !== 'separator');
 
         if (visibleHeaders.length === 0) return;
 
@@ -3107,7 +3107,7 @@ class FTable extends FTableEventEmitter {
         if (field.visibility === 'fixed') {
             return;
         }
-        if (field.visibility === 'hidden') {
+        if (field.visibility === 'hidden' || field.visibility === 'separator') {
             FTableDOMHelper.hide(cell);
         }
     }
