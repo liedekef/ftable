@@ -3180,7 +3180,7 @@ class FTable extends FTableEventEmitter {
         const value = record[fieldName];
 
         if (field.display && typeof field.display === 'function') {
-            return field.display({ record });
+            return field.display({ record, value });
         }
 
         if (field.type === 'date' && value) {
