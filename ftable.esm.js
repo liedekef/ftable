@@ -1260,24 +1260,27 @@ class FTableFormBuilder {
             parent: wrapper
         });
 
-        // Create the label with data attributes
-        const label = FTableDOMHelper.create('label', {
-            className: 'ftable-yesno-check-text',
-            attributes: {
-                for: `Edit-${fieldName}`,
-                'data-yes': dataYes,
-                'data-no': dataNo
-            },
-            parent: wrapper
-        });
-
-        // Optional: Add a static form label (e.g., "Is Active?")
-        if (field.formText) {
-            const formSpan = FTableDOMHelper.create('span', {
-                text: field.formText,
+        if (field.label) {
+            // Optional: Add a static form label (e.g., "Is Active?")
+            const label = FTableDOMHelper.create('label', {
+                className: 'ftable-yesno-check-fixedlabel',
+                attributes: {
+                    for: `Edit-${fieldName}`,
+                },
+                text: field.label,
                 parent: wrapper
             });
-            formSpan.style.marginLeft = '8px';
+        } else {
+            // Create the label with data attributes
+            const label = FTableDOMHelper.create('label', {
+                className: 'ftable-yesno-check-text',
+                attributes: {
+                    for: `Edit-${fieldName}`,
+                    'data-yes': dataYes,
+                    'data-no': dataNo
+                },
+                parent: wrapper
+            });
         }
         return wrapper;
     }
