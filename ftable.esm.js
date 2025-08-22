@@ -854,7 +854,12 @@ class FTableFormBuilder {
                     this.populateDatalistOptions(input.list, newOptions);
                 }
 
-                input.dispatchEvent(new Event('change', { bubbles: true }));
+                // at the end of the event chain: trigger change so other depending fields are notified too
+                // we don't do this without setTimeout so it triggers after the current loop is finished
+                // otherwise the change might trigger too soon
+                setTimeout(() => {
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }, 0);
 
             } catch (error) {
                 console.error(`Error loading options for ${fieldName}:`, error);
