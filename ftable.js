@@ -859,6 +859,8 @@ class FTableFormBuilder {
                     this.populateDatalistOptions(input.list, newOptions);
                 }
 
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+
             } catch (error) {
                 console.error(`Error loading options for ${fieldName}:`, error);
                 if (input.tagName === 'SELECT') {
@@ -1259,11 +1261,9 @@ class FTableFormBuilder {
                 id: `Edit-${fieldName}`,
                 value: '1'
             },
-            properties: {
-                checked: isChecked
-            },
             parent: wrapper
         });
+        checkbox.checked = isChecked;
 
         if (field.label) {
             // Optional: Add a static form label (e.g., "Is Active?")
@@ -2101,7 +2101,8 @@ class FTable extends FTableEventEmitter {
             });
 
             const actionCount = (this.options.actions.updateAction ? 1 : 0) + 
-                (this.options.actions.deleteAction ? 1 : 0);
+                (this.options.actions.deleteAction ? 1 : 0) +
+                (this.options.actions.cloneAction ? 1 : 0);
 
             if (actionCount > 0) {
                 resetTh.colSpan = actionCount;
@@ -3061,20 +3062,16 @@ class FTable extends FTableEventEmitter {
         });
 
         // Add action cells
-        let action_count = 0;
         if (this.options.actions.updateAction) {
             this.addEditCell(row);
-            action_count++;
         }
 
         if (this.options.actions.cloneAction) {
             this.addCloneCell(row);
-            action_count++;
         }
 
         if (this.options.actions.deleteAction) {
             this.addDeleteCell(row);
-            action_count++;
         }
 
         // Make row selectable if enabled

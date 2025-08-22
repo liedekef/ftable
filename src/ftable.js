@@ -853,6 +853,8 @@ class FTableFormBuilder {
                     this.populateDatalistOptions(input.list, newOptions);
                 }
 
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+
             } catch (error) {
                 console.error(`Error loading options for ${fieldName}:`, error);
                 if (input.tagName === 'SELECT') {
@@ -1253,11 +1255,9 @@ class FTableFormBuilder {
                 id: `Edit-${fieldName}`,
                 value: '1'
             },
-            properties: {
-                checked: isChecked
-            },
             parent: wrapper
         });
+        checkbox.checked = isChecked;
 
         if (field.label) {
             // Optional: Add a static form label (e.g., "Is Active?")
