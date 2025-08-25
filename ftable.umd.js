@@ -1428,7 +1428,7 @@ class FTable extends FTableEventEmitter {
             paging: false,
             pageList: 'normal',
             pageSize: 10,
-            pageSizes: [10, 25, 50, 100],
+            pageSizes: [10, 25, 50, 100, 250, 500],
             gotoPageArea: 'combobox',
             
             // Sorting
@@ -1682,7 +1682,7 @@ class FTable extends FTableEventEmitter {
             parent: container
         });
 
-        const pageSizes = this.options.pageSizes || [10, 25, 50, 100];
+        const pageSizes = this.options.pageSizes || [10, 25, 50, 100, 250, 500];
         pageSizes.forEach(size => {
             const option = FTableDOMHelper.create('option', {
                 attributes: { value: size },

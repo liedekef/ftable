@@ -4,10 +4,8 @@
   "description": "Modern, lightweight, jQuery-free CRUD table for dynamic AJAX-powered tables.",
   "main": "ftable.js",
   "module": "ftable.esm.js",
-  "types": "ftable.d.ts",
   "files": [
     "*.js",
-    "ftable.d.ts",
     "themes/",
     "localization/",
     "extensions/",
