@@ -168,12 +168,10 @@ div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .f
 }
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container::before {
   content: '▲';
-  font-family: 'Segoe UI Symbol', 'Arial Unicode MS', sans-serif;
   right: 0.6em;
 }
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container::after {
   content: '▼';
-  font-family: 'Segoe UI Symbol', 'Arial Unicode MS', sans-serif;
   right: 0px;
 }
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable.ftable-column-header-sorted-asc .ftable-column-header-container::before {
@@ -221,7 +219,6 @@ div.ftable-main-container table.ftable tbody tr > td .ftable-edit-command-button
 div.ftable-main-container table.ftable tbody tr > td .ftable-edit-command-button::before {
   content: "📝";
   font-size: 14px;
-  font-family: 'Segoe UI Symbol', 'Arial Unicode MS', sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -236,7 +233,6 @@ div.ftable-main-container table.ftable tbody tr > td .ftable-clone-command-butto
 div.ftable-main-container table.ftable tbody tr > td .ftable-clone-command-button::before {
   content: "📋";
   font-size: 14px;
-  font-family: 'Segoe UI Symbol', 'Arial Unicode MS', sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -251,7 +247,6 @@ div.ftable-main-container table.ftable tbody tr > td .ftable-delete-command-butt
 div.ftable-main-container table.ftable tbody tr > td .ftable-delete-command-button::before {
   content: "🗑️ ";
   font-size: 14px;
-  font-family: 'Segoe UI Symbol', 'Arial Unicode MS', sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
