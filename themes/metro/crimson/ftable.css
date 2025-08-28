@@ -169,7 +169,7 @@ div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .f
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container::before {
   content: '▲';
   font-family: 'Segoe UI Symbol', 'Arial Unicode MS', sans-serif;
-  right: 7px;
+  right: 0.6em;
 }
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container::after {
   content: '▼';
