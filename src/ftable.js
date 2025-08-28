@@ -613,7 +613,7 @@ class FTableFormBuilder {
         await Promise.all(promises);
     }*/
 
-    async resolveNonDependantFieldOptions(fieldValues) {
+    async resolveNonDependantFieldOptions(fieldValues, formType) {
         // Store original options before first resolution
         this.storeOriginalFieldOptions();
 
@@ -626,8 +626,8 @@ class FTableFormBuilder {
             
             if (originalOptions && (typeof originalOptions === 'function' || typeof originalOptions === 'string')) {
                 try {
-                    // Pass fieldValues as dependedValues for dependency resolution
-                    const params = { dependedValues: fieldValues };
+                    // Pass fieldValues as dependedValues for dependency resolution (but record contains everything too ...)
+                    const params = { dependedValues: fieldValues, source: formType, record: fieldValues };
                     
                     // Resolve using original options, not the possibly already-resolved ones
                     const tempField = { ...field, options: originalOptions };
@@ -647,7 +647,7 @@ class FTableFormBuilder {
 
         // Pre-resolve all options for fields depending on nothing, the others are handled down the road when dependancies are calculated
         //await this.resolveAllFieldOptions(record);
-        await this.resolveNonDependantFieldOptions(record);
+        await this.resolveNonDependantFieldOptions(record, formType);
 
         const form = FTableDOMHelper.create('form', {
             className: `ftable-dialog-form ftable-${formType}-form`
