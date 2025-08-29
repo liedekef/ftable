@@ -588,31 +588,6 @@ class FTableFormBuilder {
         return container;
     }
 
-    /*async resolveAllFieldOptions(fieldValues) {
-        // Store original options before first resolution
-        this.storeOriginalFieldOptions();
-
-        const promises = Object.entries(this.options.fields).map(async ([fieldName, field]) => {
-            // Use original options if we have them, otherwise use current field.options
-            const originalOptions = this.originalFieldOptions.get(fieldName) || field.options;
-            
-            if (originalOptions && (typeof originalOptions === 'function' || typeof originalOptions === 'string')) {
-                try {
-                    // Pass fieldValues as dependedValues for dependency resolution
-                    const params = { dependedValues: fieldValues };
-                    
-                    // Resolve using original options, not the possibly already-resolved ones
-                    const tempField = { ...field, options: originalOptions };
-                    const resolved = await this.resolveOptions(tempField, params);
-                    field.options = resolved; // Replace with resolved data
-                } catch (err) {
-                    console.error(`Failed to resolve options for ${fieldName}:`, err);
-                }
-            }
-        });
-        await Promise.all(promises);
-    }*/
-
     async resolveNonDependantFieldOptions(fieldValues, formType) {
         // Store original options before first resolution
         this.storeOriginalFieldOptions();
@@ -631,7 +606,7 @@ class FTableFormBuilder {
                     
                     // Resolve using original options, not the possibly already-resolved ones
                     const tempField = { ...field, options: originalOptions };
-                    const resolved = await this.resolveOptions(tempField, params);
+                    const resolved = await this.resolveOptions(tempField, params, formType);
                     field.options = resolved; // Replace with resolved data
                 } catch (err) {
                     console.error(`Failed to resolve options for ${fieldName}:`, err);
@@ -716,7 +691,7 @@ class FTableFormBuilder {
         this.handleDependencyChange(form);
     }
 
-    async resolveOptions(field, params = {}) {
+    async resolveOptions(field, params = {}, formType = '') {
         if (!field.options) return [];
 
         // Case 1: Direct options (array or object)
@@ -731,6 +706,7 @@ class FTableFormBuilder {
         // Enhance params with clearCache() method
         const enhancedParams = {
             ...params,
+            source: formType,
             clearCache: () => { noCache = true; }
         };
 
@@ -844,7 +820,7 @@ class FTableFormBuilder {
                 const tempField = { ...field, options: originalOptions };
 
                 // Resolve options with full context using original options
-                const newOptions = await this.resolveOptions(tempField, params);
+                const newOptions = await this.resolveOptions(tempField, params, formType);
 
                 // Populate
                 if (input.tagName === 'SELECT') {
