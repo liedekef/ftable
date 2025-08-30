@@ -544,17 +544,94 @@ class FTableFormBuilder {
         this.dependencies = new Map(); // Track field dependencies
         this.optionsCache = new FTableOptionsCache();
         this.originalFieldOptions = new Map(); // Store original field.options
+        this.resolvedFieldOptions = new Map(); // Store resolved options per context
+
+        // Initialize with empty cache objects
+        Object.keys(this.options.fields || {}).forEach(fieldName => {
+            this.resolvedFieldOptions.set(fieldName, {});
+        });
+        Object.entries(this.options.fields).forEach(([fieldName, field]) => {
+            this.originalFieldOptions.set(fieldName, field.options);
+        });
     }
 
-    // Store original field options before any resolution
-    storeOriginalFieldOptions() {
-        if (this.originalFieldOptions.size > 0) return; // Already stored
+    // Get options for specific context
+    async getFieldOptions(fieldName, context = 'table', params = {}) {
+        const field = this.options.fields[fieldName];
+        const originalOptions = this.originalFieldOptions.get(fieldName);
+        
+        // If no options or already resolved for this context with same params, return cached
+        if (!originalOptions) {
+            return null;
+        }
 
-        Object.entries(this.options.fields).forEach(([fieldName, field]) => {
-            if (field.options && (typeof field.options === 'function' || typeof field.options === 'string')) {
-                this.originalFieldOptions.set(fieldName, field.options);
+        // Determine if we should skip caching for this specific context
+        const shouldSkipCache = this.shouldSkipCachingForContext(field, context, params);
+        const cacheKey = this.generateOptionsCacheKey(context, params);
+        // Skip cache if configured or forceRefresh requested
+        if (!shouldSkipCache && !params.forceRefresh) {
+            const cached = this.resolvedFieldOptions.get(fieldName)[cacheKey];
+            if (cached) return cached;
+        }
+
+        const cacheKey = this.generateOptionsCacheKey(context, params);
+
+        // Skip cache if noCache is enabled or forceRefresh is requested
+        if (!shouldSkipCache && !params.forceRefresh) {
+            const cached = this.resolvedFieldOptions.get(fieldName)[cacheKey];
+            if (cached) return cached;
+        }
+
+        try {
+            // Create temp field with original options for resolution
+            const tempField = { ...field, options: originalOptions };
+            const resolved = await this.resolveOptions(tempField, {
+                ...params
+            }, context, shouldSkipCache);
+            
+            // Only cache if noCache is not enabled
+            if (!shouldSkipCache) {
+                this.resolvedFieldOptions.get(fieldName)[cacheKey] = resolved;
             }
-        });
+            return resolved;
+        } catch (err) {
+            console.error(`Failed to resolve options for ${fieldName} (${context}):`, err);
+            return originalOptions;
+        }
+    }
+
+    // Helper method to determine caching behavior
+    shouldSkipCachingForContext(field, context, params) {
+        if (!field.noCache) return false;
+
+        if (typeof field.noCache === 'boolean') {
+            return field.noCache; // true = skip all contexts
+        }
+
+        if (typeof field.noCache === 'function') {
+            return field.noCache({ context, ...params });
+        }
+
+        if (typeof field.noCache === 'object') {
+            // Check if this specific context should skip cache
+            return field.noCache[context] === true;
+        }
+
+        return false; // Default to caching
+    }
+
+    generateOptionsCacheKey(context, params) {
+        // Create a unique key based on context and dependency values
+        const keyParts = [context];
+
+        if (params.dependedValues) {
+            // Include relevant dependency values in the cache key
+            Object.keys(params.dependedValues).sort().forEach(key => {
+                keyParts.push(`${key}=${params.dependedValues[key]}`);
+            });
+        }
+
+        return keyParts.join('|');
     }
 
     shouldIncludeField(field, formType) {
@@ -567,6 +644,7 @@ class FTableFormBuilder {
     }
 
     createFieldContainer(fieldName, field, record, formType) {
+        // in this function, field.options already contains the resolved values
         const container = FTableDOMHelper.create('div', {
             className: 'ftable-input-field-container',
             attributes: {
@@ -588,41 +666,12 @@ class FTableFormBuilder {
         return container;
     }
 
-    async resolveNonDependantFieldOptions(fieldValues, formType) {
-        // Store original options before first resolution
-        this.storeOriginalFieldOptions();
-
-        const promises = Object.entries(this.options.fields).map(async ([fieldName, field]) => {
-            // Use original options if we have them, otherwise use current field.options
-            if (field.dependsOn) {
-                return;
-            }
-            const originalOptions = this.originalFieldOptions.get(fieldName) || field.options;
-            
-            if (originalOptions && (typeof originalOptions === 'function' || typeof originalOptions === 'string')) {
-                try {
-                    // Pass fieldValues as dependedValues for dependency resolution (but record contains everything too ...)
-                    const params = { dependedValues: fieldValues, source: formType, record: fieldValues };
-                    
-                    // Resolve using original options, not the possibly already-resolved ones
-                    const tempField = { ...field, options: originalOptions };
-                    const resolved = await this.resolveOptions(tempField, params, formType);
-                    field.options = resolved; // Replace with resolved data
-                } catch (err) {
-                    console.error(`Failed to resolve options for ${fieldName}:`, err);
-                }
-            }
-        });
-        await Promise.all(promises);
-    }
-
     async createForm(formType = 'create', record = {}) {
 
         this.currentFormRecord = record;
 
         // Pre-resolve all options for fields depending on nothing, the others are handled down the road when dependancies are calculated
-        //await this.resolveAllFieldOptions(record);
-        await this.resolveNonDependantFieldOptions(record, formType);
+        await this.resolveFormFieldOptions(record, formType);
 
         const form = FTableDOMHelper.create('form', {
             className: `ftable-dialog-form ftable-${formType}-form`
@@ -631,17 +680,61 @@ class FTableFormBuilder {
         // Build dependency map first
         this.buildDependencyMap();
 
-        Object.entries(this.options.fields).forEach(([fieldName, field]) => {
+        // Create form fields using for...of instead of forEach, this allows the await to work
+        for (const [fieldName, field] of Object.entries(this.options.fields)) {
             if (this.shouldIncludeField(field, formType)) {
-                const fieldContainer = this.createFieldContainer(fieldName, field, record, formType);
+                let fieldWithOptions = { ...field };
+                if (!field.dependsOn) {
+                    const contextOptions = await this.getFieldOptions(fieldName, formType, {
+                        record,
+                        source: formType
+                    });
+                    fieldWithOptions.options = contextOptions;
+                } else {
+                    // For dependent fields, use placeholder or original options
+                    // They will be resolved when dependencies change
+                    fieldWithOptions.options = field.options;
+                }
+
+
+                const fieldContainer = this.createFieldContainer(fieldName, fieldWithOptions, record, formType);
                 form.appendChild(fieldContainer);
             }
-        });
+        }
 
         // Set up dependency listeners after all fields are created
         this.setupDependencyListeners(form);
 
         return form;
+    }
+
+    async resolveFormFieldOptions(record, formType) {
+        const promises = Object.entries(this.options.fields).map(async ([fieldName, field]) => {
+            if (field.dependsOn) {
+                // Dependent fields will be resolved when dependencies change
+                return;
+            }
+            
+            if (this.shouldResolveOptions(field.options)) {
+                try {
+                    await this.getFieldOptions(fieldName, formType, {
+                        record,
+                        source: formType
+                    });
+                } catch (err) {
+                    console.error(`Failed to resolve form options for ${fieldName}:`, err);
+                }
+            }
+        });
+        
+        await Promise.all(promises);
+    }
+
+    shouldResolveOptions(options) {
+        return options &&
+               (typeof options === 'function' || typeof options === 'string') &&
+               !Array.isArray(options) &&
+               !(typeof options === 'object' && !Array.isArray(options) && Object.keys(options).length > 0);
     }
 
     buildDependencyMap() {
@@ -691,7 +784,7 @@ class FTableFormBuilder {
         this.handleDependencyChange(form);
     }
 
-    async resolveOptions(field, params = {}, formType = '') {
+    async resolveOptions(field, params = {}, source = '', noCache = false) {
         if (!field.options) return [];
 
         // Case 1: Direct options (array or object)
@@ -700,14 +793,16 @@ class FTableFormBuilder {
         }
 
         let result;
-        // Create a mutable flag for cache clearing
-        let noCache = false;
 
         // Enhance params with clearCache() method
         const enhancedParams = {
             ...params,
-            source: formType,
-            clearCache: () => { noCache = true; }
+            source: source,
+            clearCache: () => {
+                noCache = true;
+                // Also update the field's noCache setting for future calls
+                this.updateFieldCacheSetting(field, source, true);
+            }
         };
 
         if (typeof field.options === 'function') {
@@ -750,41 +845,81 @@ class FTableFormBuilder {
         }
     }
 
+    updateFieldCacheSetting(field, context, skipCache) {
+        if (!field.noCache) {
+            // Initialize noCache as object for this context
+            field.noCache = { [context]: skipCache };
+        } else if (typeof field.noCache === 'boolean') {
+            // Convert boolean to object, preserving existing behavior for other contexts
+            field.noCache = {
+                'table': field.noCache,
+                'create': field.noCache,
+                'edit': field.noCache,
+                [context]: skipCache // Override for this context
+            };
+        } else if (typeof field.noCache === 'object') {
+            // Update specific context
+            field.noCache[context] = skipCache;
+        }
+        // Function-based noCache remains unchanged (runtime decision)
+    }
+
     clearOptionsCache(url = null, params = null) {
         this.optionsCache.clear(url, params);
     }
 
-    async handleDependencyChange(form, changedFieldname='') {
-        // Build dependedValues: { field1: value1, field2: value2 }
-        const dependedValues = {};
+    getFormValues(form) {
+        const values = {};
 
-        // Get all field values from the form
-        for (const [fieldName, field] of Object.entries(this.options.fields)) {
-            const input = form.querySelector(`[name="${fieldName}"]`);
-            if (input) {
-                if (input.type === 'checkbox') {
-                    dependedValues[fieldName] = input.checked ? '1' : '0';
-                } else {
-                    dependedValues[fieldName] = input.value;
-                }
+        // Get all form elements
+        const elements = form.elements;
+
+        for (let i = 0; i < elements.length; i++) {
+            const element = elements[i];
+            const name = element.name;
+
+            if (!name || element.disabled) continue;
+
+            switch (element.type) {
+                case 'checkbox':
+                    values[name] = element.checked ? element.value || '1' : '0';
+                    break;
+
+                case 'radio':
+                    if (element.checked) {
+                        values[name] = element.value;
+                    }
+                    break;
+
+                case 'select-multiple':
+                    values[name] = Array.from(element.selectedOptions).map(option => option.value);
+                    break;
+
+                default:
+                    values[name] = element.value;
+                    break;
             }
         }
 
-        // Determine form context
+        return values;
+    }
+
+    async handleDependencyChange(form, changedFieldname = '') {
+        // Build dependedValues: { field1: value1, field2: value2 }
+        const dependedValues = this.getFormValues(form);
         const formType = form.classList.contains('ftable-create-form') ? 'create' : 'edit';
         const record = this.currentFormRecord || {};
 
-        // Prepare base params for options function
         const baseParams = {
             record,
             source: formType,
-            form, // DOM form element
+            form,
             dependedValues
         };
 
-        // Update each dependent field
         for (const [fieldName, field] of Object.entries(this.options.fields)) {
             if (!field.dependsOn) continue;
+            
             if (changedFieldname !== '') {
                 let dependsOnFields = field.dependsOn
                     .split(',')
@@ -807,31 +942,22 @@ class FTableFormBuilder {
                     if (datalist) datalist.innerHTML = '';
                 }
 
-                // Build params with full context
+                // Resolve options with current context
                 const params = {
                     ...baseParams,
-                    // Specific for this field
                     dependsOnField: field.dependsOn,
                     dependsOnValue: dependedValues[field.dependsOn]
                 };
 
-                // Use original options for dependent fields, not the resolved ones
-                const originalOptions = this.originalFieldOptions.get(fieldName) || field.options;
-                const tempField = { ...field, options: originalOptions };
+                const newOptions = await this.getFieldOptions(fieldName, formType, params);
 
-                // Resolve options with full context using original options
-                const newOptions = await this.resolveOptions(tempField, params, formType);
-
-                // Populate
+                // Populate the input
                 if (input.tagName === 'SELECT') {
                     this.populateSelectOptions(input, newOptions, '');
                 } else if (input.tagName === 'INPUT' && input.list) {
                     this.populateDatalistOptions(input.list, newOptions);
                 }
 
-                // at the end of the event chain: trigger change so other depending fields are notified too
-                // we don't do this without setTimeout so it triggers after the current loop is finished
-                // otherwise the change might trigger too soon
                 setTimeout(() => {
                     input.dispatchEvent(new Event('change', { bubbles: true }));
                 }, 0);
@@ -1151,7 +1277,7 @@ class FTableFormBuilder {
         const select = FTableDOMHelper.create('select', { attributes });
 
         if (field.options) {
-            //const options = this.resolveOptions(field);
+            // the field options are already the resolved ones
             this.populateSelectOptions(select, field.options, value);
         }
 
@@ -1711,53 +1837,40 @@ class FTable extends FTableEventEmitter {
     }
 
     async resolveAsyncFieldOptions() {
-        // Store original field options before any resolution
-        this.formBuilder.storeOriginalFieldOptions();
 
+        // Resolve table display options
         for (const fieldName of this.columnList) {
             const field = this.options.fields[fieldName];
+            const originalOptions = this.formBuilder.originalFieldOptions.get(fieldName);
 
-            // Use original options if available
-            const originalOptions = this.formBuilder.originalFieldOptions.get(fieldName) || field.options;
-
-            if (originalOptions &&
-                (typeof originalOptions === 'function' || typeof originalOptions === 'string') &&
-                !Array.isArray(originalOptions) &&
-                !(typeof originalOptions === 'object' && !Array.isArray(originalOptions) && Object.keys(originalOptions).length > 0)
-            ) {
+            if (this.formBuilder.shouldResolveOptions(originalOptions)) {
                 try {
-                    // Create temp field with original options for resolution
-                    const tempField = { ...field, options: originalOptions };
-                    const resolved = await this.formBuilder.resolveOptions(tempField);
-                    field.options = resolved;
+                    await this.formBuilder.getFieldOptions(fieldName, 'table');
                 } catch (err) {
-                    console.error(`Failed to resolve options for ${fieldName}:`, err);
+                    console.error(`Failed to resolve table options for ${fieldName}:`, err);
                 }
             }
         }
     }
 
-    refreshDisplayValues() {
+    async refreshDisplayValues() {
         const rows = this.elements.tableBody.querySelectorAll('.ftable-data-row');
         if (rows.length === 0) return;
 
-        rows.forEach(row => {
-            this.columnList.forEach(fieldName => {
+        for (const row of rows) {
+            for (const fieldName of this.columnList) {
                 const field = this.options.fields[fieldName];
-                if (!field.options) return;
-
-                // Check if options are now resolved (was a function/string before)
-                if (typeof field.options === 'function' || typeof field.options === 'string') {
-                    return; // Still unresolved
-                }
+                if (!field.options) continue;
 
                 const cell = row.querySelector(`td[data-field-name="${fieldName}"]`);
-                if (!cell) return;
+                if (!cell) continue;
 
-                const value = this.getDisplayText(row.recordData, fieldName);
+                // Get table-specific options
+                const options = await this.formBuilder.getFieldOptions(fieldName, 'table');
+                const value = this.getDisplayText(row.recordData, fieldName, options);
                 cell.innerHTML = field.listEscapeHTML ? FTableDOMHelper.escapeHtml(value) : value;
-            });
-        });
+            }
+        }
     }
 
     createMainStructure() {
@@ -1960,7 +2073,7 @@ class FTable extends FTableEventEmitter {
                     case 'datetime-local':
                         if (typeof FDatepicker !== 'undefined') {
                             const dateFormat = field.dateFormat || this.options.defaultDateFormat;
-                            input = document.createElement('div');
+                            const containerDiv = document.createElement('div');
                             // Create hidden input
                             const hiddenInput = FTableDOMHelper.create('input', {
                                 className: 'ftable-toolbarsearch-extra',
@@ -1981,8 +2094,8 @@ class FTable extends FTableEventEmitter {
                                 }
                             });
                             // Append both inputs
-                            input.appendChild(hiddenInput);
-                            input.appendChild(visibleInput);
+                            containerDiv.appendChild(hiddenInput);
+                            containerDiv.appendChild(visibleInput);
 
                             // Apply FDatepicker
                             const picker = new FDatepicker(visibleInput, {
@@ -1990,6 +2103,8 @@ class FTable extends FTableEventEmitter {
                                 altField: 'ftable-toolbarsearch-extra-' + fieldName,
                                 altFormat: 'Y-m-d'
                             });
+
+                            input = containerDiv;
 
                         } else {
                             input = FTableDOMHelper.create('input', {
@@ -2111,7 +2226,7 @@ class FTable extends FTableEventEmitter {
                 DisplayText: displayText
             }));
         } else if (field.options) {
-            optionsSource = await this.formBuilder.resolveOptions(field);
+            optionsSource = await this.formBuilder.resolveOptions(field, {}, 'search');
         }
 
         // Add empty option only if first option is not already empty
@@ -3150,9 +3265,10 @@ class FTable extends FTableEventEmitter {
         });
     }
 
-    getDisplayText(record, fieldName) {
+    getDisplayText(record, fieldName, customOptions = null) {
         const field = this.options.fields[fieldName];
         const value = record[fieldName];
+        const options = customOptions || field.options;
 
         if (field.display && typeof field.display === 'function') {
             return field.display({ record, value });
@@ -3178,8 +3294,8 @@ class FTable extends FTableEventEmitter {
             return this.getCheckboxText(fieldName, value);
         }
 
-        if (field.options) {
-            const option = this.findOptionByValue(field.options, value);
+        if (options) {
+            const option = this.findOptionByValue(options, value);
             return option ? option.DisplayText || option.text || option : value;
         }
 
