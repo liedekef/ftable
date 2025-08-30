@@ -37,6 +37,7 @@ const FTABLE_DEFAULT_MESSAGES = {
 class FTableOptionsCache {
     constructor() {
         this.cache = new Map();
+        this.pendingRequests = new Map(); // Track ongoing requests
     }
 
     generateKey(url, params) {
@@ -74,6 +75,37 @@ class FTableOptionsCache {
         } else {
             this.cache.clear();
         }
+    }
+
+    async getOrCreate(url, params, fetchFn) {
+        const key = this.generateKey(url, params);
+
+        // Return cached result if available
+        const cached = this.cache.get(key);
+        if (cached) return cached;
+
+        // Check if same request is already in progress
+        if (this.pendingRequests.has(key)) {
+            // Wait for the existing request to complete
+            return await this.pendingRequests.get(key);
+        }
+
+        // Create new request
+        const requestPromise = (async () => {
+            try {
+                const result = await fetchFn();
+                this.cache.set(key, result);
+                return result;
+            } finally {
+                // Clean up pending request tracking
+                this.pendingRequests.delete(key);
+            }
+        })();
+
+        // Track this request
+        this.pendingRequests.set(key, requestPromise);
+
+        return await requestPromise;
     }
 
     size() {
@@ -141,6 +173,7 @@ class FTableLogger {
         
         const levelName = Object.keys(FTableLogger.LOG_LEVELS)
             .find(key => FTableLogger.LOG_LEVELS[key] === level);
+        console.trace();
         console.log(`fTable ${levelName}: ${message}`);
     }
 
@@ -567,7 +600,7 @@ class FTableFormBuilder {
         }
 
         // Determine if we should skip caching for this specific context
-        const shouldSkipCache = this.shouldSkipCachingForContext(field, context, params);
+        const shouldSkipCache = this.shouldForceRefreshForContext(field, context, params);
         const cacheKey = this.generateOptionsCacheKey(context, params);
         // Skip cache if configured or forceRefresh requested
         if (!shouldSkipCache && !params.forceRefresh) {
@@ -582,10 +615,8 @@ class FTableFormBuilder {
                 ...params
             }, context, shouldSkipCache);
             
-            // Only cache if noCache is not enabled
-            if (!shouldSkipCache) {
-                this.resolvedFieldOptions.get(fieldName)[cacheKey] = resolved;
-            }
+            // we store the resolved option always
+            this.resolvedFieldOptions.get(fieldName)[cacheKey] = resolved;
             return resolved;
         } catch (err) {
             console.error(`Failed to resolve options for ${fieldName} (${context}):`, err);
@@ -593,24 +624,49 @@ class FTableFormBuilder {
         }
     }
 
+    /**
+     * Clear resolved options for specific field or all fields
+     * @param {string|null} fieldName - Field name to clear, or null for all fields
+     * @param {string|null} context - Context to clear ('table', 'create', 'edit'), or null for all contexts
+     */
+    clearResolvedOptions(fieldName = null, context = null) {
+        if (fieldName) {
+            // Clear specific field
+            if (this.resolvedFieldOptions.has(fieldName)) {
+                if (context) {
+                    // Clear specific context for specific field
+                    this.resolvedFieldOptions.get(fieldName)[context] = null;
+                } else {
+                    // Clear all contexts for specific field
+                    this.resolvedFieldOptions.set(fieldName, { table: null, create: null, edit: null });
+                }
+            }
+        } else {
+            // Clear all fields
+            if (context) {
+                // Clear specific context for all fields
+                this.resolvedFieldOptions.forEach((value, key) => {
+                    this.resolvedFieldOptions.get(key)[context] = null;
+                });
+            } else {
+                // Clear everything
+                this.resolvedFieldOptions.forEach((value, key) => {
+                    this.resolvedFieldOptions.set(key, { table: null, create: null, edit: null });
+                });
+            }
+        }
+    }
+
     // Helper method to determine caching behavior
-    shouldSkipCachingForContext(field, context, params) {
+    shouldForceRefreshForContext(field, context, params) {
+        // Rename to reflect what it actually does now
         if (!field.noCache) return false;
 
-        if (typeof field.noCache === 'boolean') {
-            return field.noCache; // true = skip all contexts
-        }
+        if (typeof field.noCache === 'boolean') return field.noCache;
+        if (typeof field.noCache === 'function') return field.noCache({ context, ...params });
+        if (typeof field.noCache === 'object') return field.noCache[context] === true;
 
-        if (typeof field.noCache === 'function') {
-            return field.noCache({ context, ...params });
-        }
-
-        if (typeof field.noCache === 'object') {
-            // Check if this specific context should skip cache
-            return field.noCache[context] === true;
-        }
-
-        return false; // Default to caching
+        return false;
     }
 
     generateOptionsCacheKey(context, params) {
@@ -815,27 +871,31 @@ class FTableFormBuilder {
         if (typeof url !== 'string') return [];
 
         // Only use cache if noCache is NOT set
-        if (!noCache) {
-            const cached = this.optionsCache.get(url, {});
-            if (cached) return cached;
-        }
-
-        try {
-            const response = this.options.forcePost
-                ? await FTableHttpClient.post(url)
-                : await FTableHttpClient.get(url);
-            const options = response.Options || response.options || response || [];
-
-            // Only cache if noCache is false
-            if (!noCache) {
-                this.optionsCache.set(url, {}, options);
+        if (noCache) {
+            try {
+                const response = this.options.forcePost
+                    ? await FTableHttpClient.post(url)
+                    : await FTableHttpClient.get(url);
+                return response.Options || response.options || response || [];
+            } catch (error) {
+                console.error(`Failed to load options from ${url}:`, error);
+                return [];
             }
-
-            return options;
-        } catch (error) {
-            console.error(`Failed to load options from ${url}:`, error);
-            return [];
+        } else {
+            // Use getOrCreate to prevent duplicate requests
+            return await this.optionsCache.getOrCreate(url, {}, async () => {
+                try {
+                    const response = this.options.forcePost
+                        ? await FTableHttpClient.post(url)
+                        : await FTableHttpClient.get(url);
+                    return response.Options || response.options || response || [];
+                } catch (error) {
+                    console.error(`Failed to load options from ${url}:`, error);
+                    return [];
+                }
+            });
         }
+
     }
 
     updateFieldCacheSetting(field, context, skipCache) {
@@ -1864,8 +1924,9 @@ class FTable extends FTableEventEmitter {
                 if (!cell) continue;
 
                 // Get table-specific options
-                const options = await this.formBuilder.getFieldOptions(fieldName, 'table');
-                const value = this.getDisplayText(row.recordData, fieldName, options);
+                const cacheKey = this.formBuilder.generateOptionsCacheKey('table', {});
+                const resolvedOptions = this.formBuilder.resolvedFieldOptions.get(fieldName)?.[cacheKey];
+                const value = this.getDisplayText(row.recordData, fieldName, resolvedOptions);
                 cell.innerHTML = field.listEscapeHTML ? FTableDOMHelper.escapeHtml(value) : value;
             }
         }
@@ -2224,7 +2285,7 @@ class FTable extends FTableEventEmitter {
                 DisplayText: displayText
             }));
         } else if (field.options) {
-            optionsSource = await this.formBuilder.resolveOptions(field, {}, 'search');
+            optionsSource = await this.formBuilder.getFieldOptions(fieldName);
         }
 
         // Add empty option only if first option is not already empty
@@ -3189,7 +3250,9 @@ class FTable extends FTableEventEmitter {
 
     addDataCell(row, record, fieldName) {
         const field = this.options.fields[fieldName];
-        const value = this.getDisplayText(record, fieldName);
+        const cacheKey = this.formBuilder.generateOptionsCacheKey('table', {});
+        const resolvedOptions = this.formBuilder.resolvedFieldOptions.get(fieldName)?.[cacheKey];
+        const value = this.getDisplayText(record, fieldName, resolvedOptions);
         
         const cell = FTableDOMHelper.create('td', {
             className: `${field.listClass || ''} ${field.listClassEntry || ''}`,
@@ -3668,7 +3731,9 @@ class FTable extends FTableEventEmitter {
             if (!cell) return;
 
             // Get display text
-            const value = this.getDisplayText(row.recordData, fieldName);
+            const cacheKey = this.formBuilder.generateOptionsCacheKey('table', {});
+            const resolvedOptions = this.formBuilder.resolvedFieldOptions.get(fieldName)?.[cacheKey];
+            const value = this.getDisplayText(row.recordData, fieldName, resolvedOptions);
             cell.innerHTML = field.listEscapeHTML ? FTableDOMHelper.escapeHtml(value) : value;
             cell.className = `${field.listClass || ''} ${field.listClassEntry || ''}`.trim();
         });
