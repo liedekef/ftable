@@ -695,18 +695,20 @@ class FTableFormBuilder {
     createFieldContainer(fieldName, field, record, formType) {
         // in this function, field.options already contains the resolved values
         const container = FTableDOMHelper.create('div', {
-            className: 'ftable-input-field-container',
+            className: (field.type != 'hidden' ? 'ftable-input-field-container' : ''),
             attributes: {
                 id: `ftable-input-field-container-div-${fieldName}`,
             }
         });
 
-        // Label
-        const label = FTableDOMHelper.create('div', {
-            className: 'ftable-input-label',
-            text: field.inputTitle || field.title,
-            parent: container
-        });
+        if (field.type != 'hidden') {
+            // Label
+            const label = FTableDOMHelper.create('div', {
+                className: 'ftable-input-label',
+                text: field.inputTitle || field.title,
+                parent: container
+            });
+        }
 
         // Input
         const inputContainer = this.createInput(fieldName, field, record[fieldName], formType);
@@ -718,9 +720,6 @@ class FTableFormBuilder {
     async createForm(formType = 'create', record = {}) {
 
         this.currentFormRecord = record;
-
-        // Pre-resolve all options for fields depending on nothing, the others are handled down the road when dependancies are calculated
-        await this.resolveFormFieldOptions(record, formType);
 
         const form = FTableDOMHelper.create('form', {
             className: `ftable-dialog-form ftable-${formType}-form`
@@ -755,28 +754,6 @@ class FTableFormBuilder {
         this.setupDependencyListeners(form);
 
         return form;
-    }
-
-    async resolveFormFieldOptions(record, formType) {
-        const promises = Object.entries(this.options.fields).map(async ([fieldName, field]) => {
-            if (field.dependsOn) {
-                // Dependent fields will be resolved when dependencies change
-                return;
-            }
-            
-            if (this.shouldResolveOptions(field.options)) {
-                try {
-                    await this.getFieldOptions(fieldName, formType, {
-                        record,
-                        source: formType
-                    });
-                } catch (err) {
-                    console.error(`Failed to resolve form options for ${fieldName}:`, err);
-                }
-            }
-        });
-        
-        await Promise.all(promises);
     }
 
     shouldResolveOptions(options) {
