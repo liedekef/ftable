@@ -574,14 +574,6 @@ class FTableFormBuilder {
             if (cached) return cached;
         }
 
-        const cacheKey = this.generateOptionsCacheKey(context, params);
-
-        // Skip cache if noCache is enabled or forceRefresh is requested
-        if (!shouldSkipCache && !params.forceRefresh) {
-            const cached = this.resolvedFieldOptions.get(fieldName)[cacheKey];
-            if (cached) return cached;
-        }
-
         try {
             // Create temp field with original options for resolution
             const tempField = { ...field, options: originalOptions };
@@ -1837,20 +1829,25 @@ class FTable extends FTableEventEmitter {
     }
 
     async resolveAsyncFieldOptions() {
-
-        // Resolve table display options
-        for (const fieldName of this.columnList) {
+        const promises = this.columnList.map(async (fieldName) => {
             const field = this.options.fields[fieldName];
             const originalOptions = this.formBuilder.originalFieldOptions.get(fieldName);
 
             if (this.formBuilder.shouldResolveOptions(originalOptions)) {
                 try {
-                    await this.formBuilder.getFieldOptions(fieldName, 'table');
+                    // Check if already resolved to avoid duplicate work
+                    const cacheKey = this.formBuilder.generateOptionsCacheKey('table', {});
+                    if (!this.formBuilder.resolvedFieldOptions.get(fieldName)?.[cacheKey]) {
+                        await this.formBuilder.getFieldOptions(fieldName, 'table');
+                    }
                 } catch (err) {
                     console.error(`Failed to resolve table options for ${fieldName}:`, err);
                 }
             }
-        }
+        });
+
+        await Promise.all(promises);
+        // DON'T call refreshDisplayValues() here - let renderTableData do it
     }
 
     async refreshDisplayValues() {

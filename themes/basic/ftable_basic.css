@@ -123,7 +123,7 @@ div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .f
 }
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container::before {
   content: '▲';
-  right: 0.6em;
+  right: 0.55em;
 }
 div.ftable-main-container table.ftable thead th.ftable-column-header-sortable .ftable-column-header-container::after {
   content: '▼';
