@@ -970,6 +970,9 @@ class FTableFormBuilder {
                     if (datalist) datalist.innerHTML = '';
                 }
 
+                // Get current field value BEFORE resolving new options
+                const currentValue = input.value || record[fieldName] || '';
+
                 // Resolve options with current context
                 const params = {
                     ...baseParams,
@@ -981,9 +984,11 @@ class FTableFormBuilder {
 
                 // Populate the input
                 if (input.tagName === 'SELECT') {
-                    this.populateSelectOptions(input, newOptions, '');
+                    this.populateSelectOptions(input, newOptions, currentValue);
                 } else if (input.tagName === 'INPUT' && input.list) {
                     this.populateDatalistOptions(input.list, newOptions);
+                    // For datalist, set the value directly
+                    if (currentValue) input.value = currentValue;
                 }
 
                 setTimeout(() => {
@@ -1305,7 +1310,6 @@ class FTableFormBuilder {
         const select = FTableDOMHelper.create('select', { attributes });
 
         if (field.options) {
-            // the field options are already the resolved ones
             this.populateSelectOptions(select, field.options, value);
         }
 

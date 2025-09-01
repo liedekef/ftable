@@ -744,7 +744,6 @@ class FTableFormBuilder {
                     fieldWithOptions.options = field.options;
                 }
 
-
                 const fieldContainer = this.createFieldContainer(fieldName, fieldWithOptions, record, formType);
                 form.appendChild(fieldContainer);
             }
@@ -972,6 +971,9 @@ class FTableFormBuilder {
                     if (datalist) datalist.innerHTML = '';
                 }
 
+                // Get current field value BEFORE resolving new options
+                const currentValue = input.value || record[fieldName] || '';
+
                 // Resolve options with current context
                 const params = {
                     ...baseParams,
@@ -983,9 +985,11 @@ class FTableFormBuilder {
 
                 // Populate the input
                 if (input.tagName === 'SELECT') {
-                    this.populateSelectOptions(input, newOptions, '');
+                    this.populateSelectOptions(input, newOptions, currentValue);
                 } else if (input.tagName === 'INPUT' && input.list) {
                     this.populateDatalistOptions(input.list, newOptions);
+                    // For datalist, set the value directly
+                    if (currentValue) input.value = currentValue;
                 }
 
                 setTimeout(() => {
@@ -1625,6 +1629,11 @@ class FTable extends FTableEventEmitter {
         // Start resolving in background
         this.resolveAsyncFieldOptions().then(() => {
             // re-render dynamic options rows — no server call
+            // this is needed so that once options are resolved, the table shows correct display values
+            // why: load() can actually finish faster than option resolving (and calling refreshDisplayValues
+            //      there is then pointless, since the resolving hasn't finished yet),
+            //      so we need to do it when the options are actually resolved (here)
+            //  We could call await this.resolveAsyncFieldOptions() during load, but that would slow down the loading ...
             setTimeout(() => {
                 this.refreshDisplayValues();
             }, 0);
@@ -1885,7 +1894,6 @@ class FTable extends FTableEventEmitter {
         });
 
         await Promise.all(promises);
-        // DON'T call refreshDisplayValues() here - let renderTableData do it
     }
 
     async refreshDisplayValues() {
@@ -3165,7 +3173,9 @@ class FTable extends FTableEventEmitter {
         });
 
         this.refreshRowStyles();
-        this.refreshDisplayValues(); // for options that uses functions/url's
+        // the next call might not do anything if option resolving hasn't finished yet
+        // in fact, it might even not be needed, since we call it when option resolving finishes (see init)
+        //this.refreshDisplayValues(); // for options that uses functions/url's
     }
 
     createTableRow(record) {
