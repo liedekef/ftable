@@ -1311,7 +1311,6 @@ class FTableFormBuilder {
         const select = FTableDOMHelper.create('select', { attributes });
 
         if (field.options) {
-            // the field options are already the resolved ones
             this.populateSelectOptions(select, field.options, value);
         }
 
