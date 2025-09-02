@@ -1307,11 +1307,22 @@ class FTableFormBuilder {
             class: field.inputClass || ''
         };
 
-        // Apply inputAttributes
+        // extra check for name and multiple
+        let name = fieldName;
+        // Apply inputAttributes from field definition
         if (field.inputAttributes) {
+            let hasMultiple = false;
+
             const parsed = this.parseInputAttributes(field.inputAttributes);
             Object.assign(attributes, parsed);
+
+            hasMultiple = parsed.multiple !== undefined && parsed.multiple !== false;
+
+            if (hasMultiple) {
+                name = `${fieldName}[]`;
+            }
         }
+        attributes.name = name;
 
         const select = FTableDOMHelper.create('select', { attributes });
 
@@ -1352,7 +1363,7 @@ class FTableFormBuilder {
                 // Apply inputAttributes
                 if (field.inputAttributes) {
                     const parsed = this.parseInputAttributes(field.inputAttributes);
-                    Object.assign(attributes, parsed);
+                    Object.assign(radioAttributes, parsed);
                 }
 
                 const radio = FTableDOMHelper.create('input', {
@@ -2022,7 +2033,7 @@ class FTable extends FTableEventEmitter {
 
             const textHeader = FTableDOMHelper.create('span', {
                 className: 'ftable-column-header-text',
-                text: field.title || fieldName,
+                html: field.title || fieldName,
                 parent: container
             });
 
@@ -2109,14 +2120,19 @@ class FTable extends FTableEventEmitter {
                 });
 
                 let input;
+                let searchType = 'text';
 
                 // Auto-detect select type if options are provided
-                if (!field.type && field.options) {
-                    field.type = 'select';
+                if (field.searchType) {
+                    searchType = field.searchType;
+                } else if (!field.type && field.options) {
+                    searchType = 'select';
+                } else if (field.type) {
+                    searchType = field.type;
                 }
                 const fieldSearchName = 'ftable-toolbarsearch-' + fieldName;
 
-                switch (field.type) {
+                switch (searchType) {
                     case 'date':
                     case 'datetime-local':
                         if (typeof FDatepicker !== 'undefined') {
