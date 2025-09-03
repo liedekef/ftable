@@ -1941,7 +1941,7 @@ class FTable extends FTableEventEmitter {
 
             FTableDOMHelper.create('div', {
                 className: 'ftable-title-text',
-                text: this.options.title,
+                html: this.options.title,
                 parent: this.elements.titleDiv
             });
         }
