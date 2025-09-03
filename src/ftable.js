@@ -4439,6 +4439,7 @@ class FTable extends FTableEventEmitter {
     }
 
     // Responsive helpers
+/*
     makeResponsive() {
         // Add responsive classes and behavior
         FTableDOMHelper.addClass(this.elements.mainContainer, 'ftable-responsive');
@@ -4697,6 +4698,7 @@ class FTable extends FTableEventEmitter {
         });
         return this;
     }
+    */
 
     editRecordByKey(keyValue) {
         const row = this.getRowByKey(keyValue);
@@ -4928,56 +4930,6 @@ class FTable extends FTableEventEmitter {
      * @param {HTMLElement} [options.form] - Form to search in (default: current form)
      * @param {number} [options.timeout=5000] - Max wait time in ms
      */
-    /*
-    _waitForFieldReady(fieldName, callback, options = {}) {
-        const { form = this.currentForm, timeout = 5000 } = options;
-        if (!form) {
-            console.warn(`FTable: No form available for waitForFieldReady('${fieldName}')`);
-            return;
-        }
-
-        const select = form.querySelector(`[name="${fieldName}"]`);
-        if (!select || select.tagName !== 'SELECT') {
-            console.warn(`FTable: Field '${fieldName}' not found or not a <select>`);
-            return;
-        }
-
-        // If already has options, call immediately
-        if (select.options.length > 1) {
-            callback();
-            return;
-        }
-
-        // Otherwise, wait for first option to be added
-        const observer = new MutationObserver(() => {
-            if (select.options.length > 1) {
-                observer.disconnect();
-                callback();
-            }
-        });
-        observer.observe(select, { childList: true });
-
-        // Optional: timeout fallback
-        if (timeout > 0) {
-            setTimeout(() => {
-                if (observer) {
-                    observer.disconnect();
-                    if (select.options.length > 1) {
-                        callback();
-                    } else {
-                        console.warn(`FTable: Timeout waiting for field '${fieldName}' to load options`);
-                    }
-                }
-            }, timeout);
-        }
-    }
-
-    async waitForFieldReady(fieldName, options = {}) {
-        return new Promise((resolve) => {
-            this._waitForFieldReady(fieldName, resolve, options);
-        });
-    }
-    */
     static _waitForFieldReady(fieldName, form, callback, timeout = 5000) {
         if (!form) {
             console.warn(`FTable: No form provided for waitForFieldReady('${fieldName}')`);
