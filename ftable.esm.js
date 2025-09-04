@@ -2331,6 +2331,8 @@ class FTable extends FTableEventEmitter {
         const fieldName = input.getAttribute('data-field-name');
         const value = input.value.trim();
 
+        // reset paging to page 1
+        this.state.currentPage = 1;
         // Update internal search state
         if (value) {
             this.state.searchQueries[fieldName] = value;
