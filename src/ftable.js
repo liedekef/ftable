@@ -2147,7 +2147,7 @@ class FTable extends FTableEventEmitter {
                                 attributes: {
                                     id: 'ftable-toolbarsearch-' + fieldName,
                                     type: 'text',
-                                    placeholder: field.placeholder || '',
+                                    placeholder: field.searchPlaceholder || field.placeholder || '',
                                     readOnly: true
                                 }
                             });
@@ -2186,7 +2186,7 @@ class FTable extends FTableEventEmitter {
                                     type: 'text',
                                     'data-field-name': fieldName,
                                     id: fieldSearchName,
-                                    placeholder: 'Search...'
+                                    placeholder: field.searchPlaceholder || field.placeholder || 'Search...'
                                 }
                             });
                         }
@@ -2202,7 +2202,7 @@ class FTable extends FTableEventEmitter {
                                     type: 'text',
                                     'data-field-name': fieldName,
                                     id: fieldSearchName,
-                                    placeholder: 'Search...'
+                                    placeholder: field.searchPlaceholder || field.placeholder || 'Search...'
                                 }
                             });
                         }
@@ -2215,7 +2215,7 @@ class FTable extends FTableEventEmitter {
                                 type: 'text',
                                 'data-field-name': fieldName,
                                 id: fieldSearchName,
-                                placeholder: 'Search...'
+                                placeholder: field.searchPlaceholder || field.placeholder || 'Search...'
                             }
                         });
                 }
@@ -2276,31 +2276,19 @@ class FTable extends FTableEventEmitter {
 
         // extra check for name and multiple
         let name = fieldName;
-        // Apply inputAttributes from field definition
-        if (field.inputAttributes) {
-            let hasMultiple = false;
-
-            const parsed = this.formBuilder.parseInputAttributes(field.inputAttributes);
-            Object.assign(attributes, parsed);
-
-            hasMultiple = parsed.multiple !== undefined && parsed.multiple !== false;
-
-            if (hasMultiple) {
-                name = `${fieldName}[]`;
-            }
-        }
+        let hasMultiple = false;
         // Apply inputAttributes from field definition
         if (field.searchAttributes) {
-            let hasMultiple = false;
-
             const parsed = this.formBuilder.parseInputAttributes(field.searchAttributes);
             Object.assign(attributes, parsed);
-
             hasMultiple = parsed.multiple !== undefined && parsed.multiple !== false;
-
-            if (hasMultiple) {
-                name = `${fieldName}[]`;
-            }
+        } else if (field.inputAttributes) {
+            const parsed = this.formBuilder.parseInputAttributes(field.inputAttributes);
+            Object.assign(attributes, parsed);
+            hasMultiple = parsed.multiple !== undefined && parsed.multiple !== false;
+        }
+        if (hasMultiple) {
+            name = `${fieldName}[]`;
         }
         attributes['data-field-name'] = name;
 
@@ -2397,7 +2385,11 @@ class FTable extends FTableEventEmitter {
         // Clear input values in the search row
         const searchInputs = this.elements.table.querySelectorAll('.ftable-toolbarsearch');
         searchInputs.forEach(input => {
-            if (input.tagName === 'SELECT') {
+            if (input.tagName === 'SELECT' && input.tomselect) {
+                // Tom Select instance exists — clear it properly
+                input.tomselect.clear();
+                input.tomselect.refresh(); // Optional: ensures UI is in sync
+            } else if (input.tagName === 'SELECT') {
                 input.selectedIndex = 0; // Select the first (empty) option
             } else {
                 input.value = '';

@@ -2153,7 +2153,7 @@ class FTable extends FTableEventEmitter {
                                 attributes: {
                                     id: 'ftable-toolbarsearch-' + fieldName,
                                     type: 'text',
-                                    placeholder: field.placeholder || '',
+                                    placeholder: field.searchPlaceholder || field.placeholder || '',
                                     readOnly: true
                                 }
                             });
@@ -2192,7 +2192,7 @@ class FTable extends FTableEventEmitter {
                                     type: 'text',
                                     'data-field-name': fieldName,
                                     id: fieldSearchName,
-                                    placeholder: 'Search...'
+                                    placeholder: field.searchPlaceholder || field.placeholder || 'Search...'
                                 }
                             });
                         }
@@ -2208,7 +2208,7 @@ class FTable extends FTableEventEmitter {
                                     type: 'text',
                                     'data-field-name': fieldName,
                                     id: fieldSearchName,
-                                    placeholder: 'Search...'
+                                    placeholder: field.searchPlaceholder || field.placeholder || 'Search...'
                                 }
                             });
                         }
@@ -2221,7 +2221,7 @@ class FTable extends FTableEventEmitter {
                                 type: 'text',
                                 'data-field-name': fieldName,
                                 id: fieldSearchName,
-                                placeholder: 'Search...'
+                                placeholder: field.searchPlaceholder || field.placeholder || 'Search...'
                             }
                         });
                 }
@@ -2275,12 +2275,31 @@ class FTable extends FTableEventEmitter {
 
     async createSelectForSearch(fieldName, field, isCheckboxValues) {
         const fieldSearchName = 'ftable-toolbarsearch-' + fieldName;
+        const attributes = {
+            id: fieldSearchName,
+            class: 'ftable-toolbarsearch'
+        };
+
+        // extra check for name and multiple
+        let name = fieldName;
+        let hasMultiple = false;
+        // Apply inputAttributes from field definition
+        if (field.searchAttributes) {
+            const parsed = this.formBuilder.parseInputAttributes(field.searchAttributes);
+            Object.assign(attributes, parsed);
+            hasMultiple = parsed.multiple !== undefined && parsed.multiple !== false;
+        } else if (field.inputAttributes) {
+            const parsed = this.formBuilder.parseInputAttributes(field.inputAttributes);
+            Object.assign(attributes, parsed);
+            hasMultiple = parsed.multiple !== undefined && parsed.multiple !== false;
+        }
+        if (hasMultiple) {
+            name = `${fieldName}[]`;
+        }
+        attributes['data-field-name'] = name;
+
         const select = FTableDOMHelper.create('select', {
-            attributes: {
-                'data-field-name': fieldName,
-                id: fieldSearchName,
-                class: 'ftable-toolbarsearch'
-            }
+            attributes: attributes
         });
 
         let optionsSource;
@@ -2334,12 +2353,25 @@ class FTable extends FTableEventEmitter {
     handleSearchInputChange(event) {
         const input = event.target;
         const fieldName = input.getAttribute('data-field-name');
-        const value = input.value.trim();
+        let value;
+        // Handle multiple select or multiple file inputs
+        if (input.multiple && input.options) {
+            // It's a <select multiple>
+            value = Array.from(input.selectedOptions)
+                .map(option => option.value)
+                .filter(v => v.trim() !== '') // optional: filter out empty values
+                .map(v => v.trim());
+        } else {
+            // Regular input (text, number, etc.) or single select
+            value = input.value.trim();
+        }
 
         // reset paging to page 1
         this.state.currentPage = 1;
         // Update internal search state
-        if (value) {
+        if (Array.isArray(value) && value.length > 0) {
+            this.state.searchQueries[fieldName] = value;
+        } else if (!Array.isArray(value) && value) {
             this.state.searchQueries[fieldName] = value;
         } else {
             delete this.state.searchQueries[fieldName];
@@ -2359,7 +2391,11 @@ class FTable extends FTableEventEmitter {
         // Clear input values in the search row
         const searchInputs = this.elements.table.querySelectorAll('.ftable-toolbarsearch');
         searchInputs.forEach(input => {
-            if (input.tagName === 'SELECT') {
+            if (input.tagName === 'SELECT' && input.tomselect) {
+                // Tom Select instance exists — clear it properly
+                input.tomselect.clear();
+                input.tomselect.refresh(); // Optional: ensures UI is in sync
+            } else if (input.tagName === 'SELECT') {
                 input.selectedIndex = 0; // Select the first (empty) option
             } else {
                 input.value = '';
