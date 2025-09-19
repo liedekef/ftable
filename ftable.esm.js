@@ -3715,9 +3715,18 @@ class FTable extends FTableEventEmitter {
         throw new Error('No valid updateAction provided');
     }
 
-    async performDelete(keyValue) {
+    async performDelete(keyValueOrData) {
         const deleteAction = this.options.actions.deleteAction;
-        const data = { [this.keyField]: keyValue };
+
+        let data;
+        if (keyValueOrData !== null && typeof keyValueOrData === 'object' && !Array.isArray(keyValueOrData)) {
+            // If an object is passed, use it directly.
+            // It's the caller's responsibility to ensure it contains the needed info
+            data = keyValueOrData;
+        } else {
+            // If a primitive value is passed, wrap it using the key field
+            data = { [this.keyField]: keyValueOrData };
+        }
         
         if (typeof deleteAction === 'function') {
             return await deleteAction(data);
