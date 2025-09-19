@@ -2261,6 +2261,9 @@ class FTable extends FTableEventEmitter {
             const resetButton = FTableDOMHelper.create('button', {
                 className: 'ftable-toolbarsearch-reset-button',
                 text: this.options.messages.resetSearch,
+                attributes : {
+                    id: 'ftable-toolbarsearch-reset-button'
+                },
                 parent: resetTh
             });
             resetButton.addEventListener('click', () => this.resetSearch());
@@ -2385,11 +2388,7 @@ class FTable extends FTableEventEmitter {
         // Clear input values in the search row
         const searchInputs = this.elements.table.querySelectorAll('.ftable-toolbarsearch');
         searchInputs.forEach(input => {
-            if (input.tagName === 'SELECT' && input.tomselect) {
-                // Tom Select instance exists — clear it properly
-                input.tomselect.clear();
-                input.tomselect.refresh(); // Optional: ensures UI is in sync
-            } else if (input.tagName === 'SELECT') {
+            if (input.tagName === 'SELECT') {
                 input.selectedIndex = 0; // Select the first (empty) option
             } else {
                 input.value = '';
@@ -3715,9 +3714,18 @@ class FTable extends FTableEventEmitter {
         throw new Error('No valid updateAction provided');
     }
 
-    async performDelete(keyValue) {
+    async performDelete(keyValueOrData) {
         const deleteAction = this.options.actions.deleteAction;
-        const data = { [this.keyField]: keyValue };
+
+        let data;
+        if (keyValueOrData !== null && typeof keyValueOrData === 'object' && !Array.isArray(keyValueOrData)) {
+            // If an object is passed, use it directly.
+            // It's the caller's responsibility to ensure it contains the needed info
+            data = keyValueOrData;
+        } else {
+            // If a primitive value is passed, wrap it using the key field
+            data = { [this.keyField]: keyValueOrData };
+        }
         
         if (typeof deleteAction === 'function') {
             return await deleteAction(data);
