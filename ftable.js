@@ -1546,6 +1546,8 @@ class FTable extends FTableEventEmitter {
         this.searchTimeout = null; // For debouncing
         this.lastSortEvent = null;
         this._recalculatedOnce = false;
+        this.shiftKeyDown = false; // for shift-select
+        this.lastSelectedRow = null; // for shift-select
 
         // store it on the DOM too, so people can access it
         this.element.ftableInstance = this;
@@ -3050,8 +3052,6 @@ class FTable extends FTableEventEmitter {
 
     bindKeyboardEvents() {
         if (this.options.selecting) {
-            this.shiftKeyDown = false;
-            
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Shift') this.shiftKeyDown = true;
             });
@@ -3821,17 +3821,35 @@ class FTable extends FTableEventEmitter {
     toggleRowSelection(row) {
         const isSelected = row.classList.contains('ftable-row-selected');
         
-        if (!this.options.multiselect) {
-            // Clear all other selections
-            this.clearAllSelections();
-        }
-        
-        if (isSelected) {
-            this.deselectRow(row);
+        if (this.shiftKeyDown && this.lastSelectedRow && this.options.multiselect) {
+            // Shift + Click: select range
+            this.clearAllSelections(); // Optional: clear previous selection, or keep it
+            const rows = Array.from(this.elements.tableBody.querySelectorAll('.ftable-data-row'));
+            const startIndex = rows.indexOf(this.lastSelectedRow);
+            const endIndex = rows.indexOf(row);
+            const [start, end] = startIndex < endIndex ? [startIndex, endIndex] : [endIndex, startIndex];
+
+            for (let i = start; i <= end; i++) {
+                this.selectRow(rows[i]);
+            }
         } else {
-            this.selectRow(row);
+            if (!this.options.multiselect) {
+                // Clear all other selections
+                this.clearAllSelections();
+            }
+
+            if (isSelected) {
+                this.deselectRow(row);
+            } else {
+                this.selectRow(row);
+            }
         }
-        
+
+        // Always update last selected row (even if deselected, but usually only on select)
+        if (!isSelected || this.shiftKeyDown) {
+            this.lastSelectedRow = row;
+        }
+
         this.emit('selectionChanged', { selectedRows: this.getSelectedRows() });
     }
 
