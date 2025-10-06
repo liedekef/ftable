@@ -1,6 +1,6 @@
 {
   "name": "@liedekef/ftable",
-  "version": "1.1.30",
+  "version": "1.1.31",
   "description": "Modern, lightweight, jQuery-free CRUD table for dynamic AJAX-powered tables.",
   "main": "ftable.js",
   "module": "ftable.esm.js",
