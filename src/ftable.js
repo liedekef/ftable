@@ -172,7 +172,7 @@ class FTableLogger {
         
         const levelName = Object.keys(FTableLogger.LOG_LEVELS)
             .find(key => FTableLogger.LOG_LEVELS[key] === level);
-        console.trace();
+        //console.trace();
         console.log(`fTable ${levelName}: ${message}`);
     }
 
@@ -508,7 +508,10 @@ class FtableModal {
                 });
 
                 if (button.onClick) {
-                    btn.addEventListener('click', button.onClick);
+                    // Store original handler
+                    btn._originalOnClick = button.onClick;
+                    // Attach wrapped handler
+                    btn.addEventListener('click', this._createWrappedClickHandler(btn));
                 }
             });
         }
@@ -528,6 +531,13 @@ class FtableModal {
         if (!this.modal) this.create();
         this.overlay.style.display = 'flex';
         this.isOpen = true;
+
+        // Enable all ftable-dialog-button buttons
+        const buttons = this.modal.querySelectorAll('.ftable-dialog-button');
+        buttons.forEach(btn => {
+            btn.disabled = false;
+        });
+
         return this;
     }
 
@@ -568,6 +578,28 @@ class FtableModal {
         } else {
             body.appendChild(content);
         }
+    }
+
+    _createWrappedClickHandler(buttonElement) {
+        return async (event) => {
+            // Disable immediately
+            buttonElement.disabled = true;
+
+            try {
+                const handler = buttonElement._originalOnClick;
+                if (typeof handler === 'function') {
+                    const result = handler.call(buttonElement, event);
+                    if (result instanceof Promise) {
+                        await result;
+                    }
+                }
+            } catch (error) {
+                console.error('Modal button action failed:', error);
+            } finally {
+                // Re-enable regardless of outcome
+                buttonElement.disabled = false;
+            }
+        };
     }
 }
 
