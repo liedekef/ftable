@@ -1182,11 +1182,15 @@ class FTableFormBuilder {
             container.appendChild(visibleInput);
 
             // Apply FDatepicker
-            const picker = new FDatepicker(visibleInput, {
-                format: dateFormat,
-                altField: 'real-' + fieldName,
-                altFormat: 'Y-m-d'
-            });
+            // Initialize FDatepicker AFTER the container is in the DOM
+            // We'll use a small timeout to ensure DOM attachment
+            setTimeout(() => { 
+                const picker = new FDatepicker(visibleInput, {
+                    format: dateFormat,
+                    altField: 'real-' + fieldName,
+                    altFormat: 'Y-m-d'
+                });
+            }, 0);
 
             return container;
         } else {
@@ -2196,11 +2200,15 @@ class FTable extends FTableEventEmitter {
                             containerDiv.appendChild(visibleInput);
 
                             // Apply FDatepicker
-                            const picker = new FDatepicker(visibleInput, {
-                                format: dateFormat,
-                                altField: 'ftable-toolbarsearch-extra-' + fieldName,
-                                altFormat: 'Y-m-d'
-                            });
+                            // Initialize FDatepicker AFTER the container is in the DOM
+                            // We'll use a small timeout to ensure DOM attachment
+                            setTimeout(() => { 
+                                const picker = new FDatepicker(visibleInput, {
+                                    format: dateFormat,
+                                    altField: 'ftable-toolbarsearch-extra-' + fieldName,
+                                    altFormat: 'Y-m-d'
+                                });
+                            }, 0);
 
                             input = containerDiv;
 
