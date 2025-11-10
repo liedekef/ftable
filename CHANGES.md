@@ -1,3 +1,6 @@
+= 1.1.33 (2025/11/10) =
+* remove add/edit modal form on close, to prevent double form id's
+
 = 1.1.3 (2025/08/03) =
 * support fdatepicker
 
