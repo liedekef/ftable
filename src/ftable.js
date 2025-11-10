@@ -2684,6 +2684,12 @@ class FTable extends FTableEventEmitter {
                     onClick: () => {
                         this.modals.addRecord.close();
                         this.emit('formClosed', { form: this.currentForm, formType: 'create', record: null });
+
+						// Verwijder formulier bij cancel
+						if (this.currentForm && this.currentForm.parentNode) {
+							this.currentForm.remove();
+						}
+						this.currentForm = null;
                     }
                 },
                 {
@@ -2705,8 +2711,14 @@ class FTable extends FTableEventEmitter {
                     text: this.options.messages.cancel,
                     className: 'ftable-dialog-cancelbutton',
                     onClick: () => { 
-                        this.emit('formClosed', { form: this.currentForm, formType: 'edit', record: null });
                         this.modals.editRecord.close();
+                        this.emit('formClosed', { form: this.currentForm, formType: 'edit', record: null });
+
+						// Verwijder formulier bij cancel
+						if (this.currentForm && this.currentForm.parentNode) {
+							this.currentForm.remove();
+						}
+						this.currentForm = null;
                     }
                 },
                 {
@@ -3555,6 +3567,12 @@ class FTable extends FTableEventEmitter {
             if (result.Result === 'OK') {
                 this.clearListCache();
                 this.modals.addRecord.close();
+				
+				// Verwijder het formulier
+				if (this.currentForm && this.currentForm.parentNode) {
+					this.currentForm.remove();
+				}
+				this.currentForm = null;
 
                 // Call formClosed
                 this.emit('formClosed', { form: this.currentForm, formType: 'create', record: null });
@@ -3602,6 +3620,12 @@ class FTable extends FTableEventEmitter {
             if (result.Result === 'OK') {
                 this.clearListCache();
                 this.modals.editRecord.close();
+				
+				// Verwijder het formulier
+				if (this.currentForm && this.currentForm.parentNode) {
+					this.currentForm.remove();
+				}
+				this.currentForm = null;
 
                 // Call formClosed
                 this.emit('formClosed', { form: this.currentForm, formType: 'edit', record: this.currentEditingRow.recordData });
