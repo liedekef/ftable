@@ -517,11 +517,13 @@ class FtableModal {
         }
 
         // Close on overlay click
-        this.overlay.addEventListener('click', (e) => {
-            if (e.target === this.overlay) {
-                this.close();
-            }
-        });
+        if (this.options.closeOnOverlayClick) {
+            this.overlay.addEventListener('click', (e) => {
+                if (e.target === this.overlay) {
+                    this.close();
+                }
+            });
+        }
 
         this.hide();
         return this;
@@ -1153,24 +1155,25 @@ class FTableFormBuilder {
                     name: fieldName
                 }
             });
-            // Create visible input
-            const visibleInput = FTableDOMHelper.create('input', {
-                className: field.inputClass || 'datepicker-input',
-                attributes: {
-                    id: 'Edit-' + fieldName,
-                    type: 'text',
-                    'data-date': value,
-                    placeholder: field.placeholder || '',
-                    readOnly: true
-                }
-            });
 
+            // Create visible input
+            const attributes = {
+                id: `Edit-${fieldName}`,
+                type: 'text',
+                'data-date': value,
+                placeholder: field.placeholder || '',
+                readOnly: true
+            };
             // Set any additional attributes
             if (field.inputAttributes) {
-                Object.keys(field.inputAttributes).forEach(key => {
-                    visibleInput.setAttribute(key, field.inputAttributes[key]);
-                });
+                const parsed = this.parseInputAttributes(field.inputAttributes);
+                Object.assign(attributes, parsed);
             }
+
+            const visibleInput = FTableDOMHelper.create('input', {
+                className: field.inputClass || 'datepicker-input',
+                attributes: attributes
+            });
 
             // Append both inputs
             container.appendChild(hiddenInput);
@@ -1607,6 +1610,7 @@ class FTable extends FTableEventEmitter {
             actions: {},
             fields: {},
             forcePost: true,
+            closeOnOverlayClick: true,
             animationsEnabled: true,
             loadingAnimationDelay: 1000,
             defaultDateLocale: '',
@@ -2707,6 +2711,7 @@ class FTable extends FTableEventEmitter {
             parent: this.elements.mainContainer,
             title: this.options.messages.addNewRecord,
             className: 'ftable-add-modal',
+            closeOnOverlayClick: this.options.closeOnOverlayClick,
             buttons: [
                 {
                     text: this.options.messages.cancel,
@@ -2736,6 +2741,7 @@ class FTable extends FTableEventEmitter {
             parent: this.elements.mainContainer,
             title: this.options.messages.editRecord,
             className: 'ftable-edit-modal',
+            closeOnOverlayClick: this.options.closeOnOverlayClick,
             buttons: [
                 {
                     text: this.options.messages.cancel,
@@ -2765,6 +2771,7 @@ class FTable extends FTableEventEmitter {
             parent: this.elements.mainContainer,
             title: this.options.messages.areYouSure,
             className: 'ftable-delete-modal',
+            closeOnOverlayClick: this.options.closeOnOverlayClick,
             buttons: [
                 {
                     text: this.options.messages.cancel,
@@ -2785,6 +2792,7 @@ class FTable extends FTableEventEmitter {
             parent: this.elements.mainContainer,
             title: this.options.messages.error,
             className: 'ftable-error-modal',
+            closeOnOverlayClick: this.options.closeOnOverlayClick,
             buttons: [
                 {
                     text: this.options.messages.close,
@@ -2800,6 +2808,7 @@ class FTable extends FTableEventEmitter {
             parent: this.elements.mainContainer,
             title: '',
             className: 'ftable-info-modal',
+            closeOnOverlayClick: this.options.closeOnOverlayClick,
             buttons: [
                 {
                     text: this.options.messages.close,
@@ -2815,6 +2824,7 @@ class FTable extends FTableEventEmitter {
             parent: this.elements.mainContainer,
             title: '',
             className: 'ftable-loading-modal',
+            closeOnOverlayClick: false,
             content: `<div class="ftable-loading-message">${this.options.messages.loadingMessage}</div>`
         });
     }
