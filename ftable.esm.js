@@ -1091,6 +1091,7 @@ class FTableFormBuilder {
                 input = this.createFileInput(fieldName, field, value);
                 break;
             case 'date':
+            case 'datetime':
             case 'datetime-local':
                 input = this.createDateInput(fieldName, field, value);
                 break;
@@ -1179,14 +1180,28 @@ class FTableFormBuilder {
             // Apply FDatepicker
             // Initialize FDatepicker AFTER the container is in the DOM
             // We'll use a small timeout to ensure DOM attachment
-            setTimeout(() => { 
-                const picker = new FDatepicker(visibleInput, {
-                    format: dateFormat,
-                    altField: 'real-' + fieldName,
-                    altFormat: 'Y-m-d'
-                });
-            }, 0);
-
+            switch (field.type) {
+                case 'date':
+                    setTimeout(() => { 
+                        const picker = new FDatepicker(visibleInput, {
+                            format: dateFormat,
+                            altField: 'real-' + fieldName,
+                            altFormat: 'Y-m-d'
+                        });
+                    }, 0);
+                    break;
+                case 'datetime':
+                case 'datetime-local':
+                    setTimeout(() => { 
+                        const picker = new FDatepicker(visibleInput, {
+                            format: dateFormat,
+                            timepicker: true,
+                            altField: 'real-' + fieldName,
+                            altFormat: 'Y-m-d H:i:00'
+                        });
+                    }, 0);
+                    break;
+            }
             return container;
         } else {
             return createTypedInput(fieldName, field, value);
@@ -2167,6 +2182,7 @@ class FTable extends FTableEventEmitter {
 
                 switch (searchType) {
                     case 'date':
+                    case 'datetime':
                     case 'datetime-local':
                         if (typeof FDatepicker !== 'undefined') {
                             const dateFormat = field.dateFormat || this.options.defaultDateFormat;
@@ -2197,14 +2213,28 @@ class FTable extends FTableEventEmitter {
                             // Apply FDatepicker
                             // Initialize FDatepicker AFTER the container is in the DOM
                             // We'll use a small timeout to ensure DOM attachment
-                            setTimeout(() => { 
-                                const picker = new FDatepicker(visibleInput, {
-                                    format: dateFormat,
-                                    altField: 'ftable-toolbarsearch-extra-' + fieldName,
-                                    altFormat: 'Y-m-d'
-                                });
-                            }, 0);
-
+                            switch (searchType) {
+                                case 'date':
+                                    setTimeout(() => { 
+                                        const picker = new FDatepicker(visibleInput, {
+                                            format: dateFormat,
+                                            altField: 'ftable-toolbarsearch-extra-' + fieldName,
+                                            altFormat: 'Y-m-d'
+                                        });
+                                    }, 0);
+                                    break;
+                                case 'datetime':
+                                case 'datetime-local':
+                                    setTimeout(() => { 
+                                        const picker = new FDatepicker(visibleInput, {
+                                            format: dateFormat,
+                                            timepicker: true,
+                                            altField: 'ftable-toolbarsearch-extra-' + fieldName,
+                                            altFormat: 'Y-m-d H:i:00'
+                                        });
+                                    }, 0);
+                                    break;
+                            }
                             input = containerDiv;
 
                         } else {
@@ -3434,7 +3464,7 @@ class FTable extends FTableEventEmitter {
             }
         }
 
-        if (field.type === 'datetime-local' && value) {
+        if ((field.type === 'datetime-local' || field.type === 'datetime') && value) {
             if (typeof FDatepicker !== 'undefined') {
                 return FDatepicker.formatDate(this._parseDate(value), field.dateFormat || this.options.defaultDateFormat);
             } else {
