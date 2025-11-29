@@ -6,4 +6,4 @@ scriptdir=$(dirname $scriptpath)
 basedir=$(dirname $scriptdir)
 cd $basedir
 
-uglifyjs -o ftable.min.js ftable.js
+uglifyjs -o ftable.min.js src/ftable.js
