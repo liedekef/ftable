@@ -3136,7 +3136,7 @@ class FTable extends FTableEventEmitter {
                 button.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    item.click();
+                    item.click(e);
                 });
             }
         });
@@ -4483,18 +4483,22 @@ class FTable extends FTableEventEmitter {
             <head>
                 <title>${this.options.title || 'Table Data'}</title>
                 <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    table { width: 100%; border-collapse: collapse; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    th { background-color: #f2f2f2; font-weight: bold; }
+                    @page { size: landscape; margin: 0.5cm; }
+                    body { margin: 0; padding: 10px; font-size: 10px; }
+                    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                    th, td { border: 1px solid #000; padding: 4px; word-wrap: break-word; }
+                    tr {
+                        page-break-inside: avoid;
+                        break-inside: avoid;
+                    }
+                    th { background: #eee; }
+                    .no-print { display: none; }
+                    .ftable-toolbarsearch, .ftable-toolbarsearch-reset-button { display: none; }
                     .ftable-command-column { display: none !important; }
                     .ftable-command-column-header { display: none !important; }
                     .ftable-selecting-column { display: none !important; }
                     .ftable-column-header-select { display: none !important; }
-                    @media print {
-                        body { margin: 0; }
-                        table { font-size: 12px; }
-                    }
+                    .ftable-toolbarsearch-column-header { display: none !important; }
                 </style>
             </head>
             <body>
