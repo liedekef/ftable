@@ -4492,6 +4492,7 @@ class FTable extends FTableEventEmitter {
                     .ftable-command-column-header { display: none !important; }
                     .ftable-selecting-column { display: none !important; }
                     .ftable-column-header-select { display: none !important; }
+                    .ftable-toolbarsearch-column-header { display: none !important; }
                 </style>
             </head>
             <body>
