@@ -4483,7 +4483,6 @@ class FTable extends FTableEventEmitter {
             <head>
                 <title>${this.options.title || 'Table Data'}</title>
                 <style>
-                    @page { size: landscape; margin: 0.5cm; }
                     body { margin: 0; padding: 10px; font-size: 10px; }
                     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
                     th, td { border: 1px solid #000; padding: 4px; word-wrap: break-word; }
