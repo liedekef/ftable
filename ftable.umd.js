@@ -1,9 +1,5 @@
 
-(function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-    typeof define === 'function' && define.amd ? define(factory) :
-    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.FTable = factory());
-}(this, (function () {
+(function (global) {
     const FTABLE_DEFAULT_MESSAGES = {
     serverCommunicationError: 'An error occurred while communicating to the server.',
     loadingMessage: 'Loading records...',
@@ -5154,5 +5150,18 @@ class FTable extends FTableEventEmitter {
     }
 }
 
-    return FTable;
-})));
+
+    // Expose classes globally
+    global.FTable = FTable;
+    global.FtableModal = FtableModal;
+    global.FTableHttpClient = FTableHttpClient;
+
+    // For CommonJS
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = FTable;
+        module.exports.FtableModal = FtableModal;
+        module.exports.FTableHttpClient = FTableHttpClient;
+    }
+}(typeof globalThis !== 'undefined' ? globalThis :
+  typeof window !== 'undefined' ? window :
+  typeof global !== 'undefined' ? global : this));

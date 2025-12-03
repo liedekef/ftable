@@ -17,14 +17,23 @@ await writeFile(outputEsm, esm);
 
 // UMD version
 const umd = `
-(function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-    typeof define === 'function' && define.amd ? define(factory) :
-    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.FTable = factory());
-}(this, (function () {
+(function (global) {
     ${source}
-    return FTable;
-})));
+
+    // Expose classes globally
+    global.FTable = FTable;
+    global.FtableModal = FtableModal;
+    global.FTableHttpClient = FTableHttpClient;
+
+    // For CommonJS
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = FTable;
+        module.exports.FtableModal = FtableModal;
+        module.exports.FTableHttpClient = FTableHttpClient;
+    }
+}(typeof globalThis !== 'undefined' ? globalThis :
+  typeof window !== 'undefined' ? window :
+  typeof global !== 'undefined' ? global : this));
 `;
 await writeFile(outputUmd, umd);
 
