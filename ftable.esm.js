@@ -2189,7 +2189,7 @@ class FTable extends FTableEventEmitter {
                     case 'datetime':
                     case 'datetime-local':
                         if (typeof FDatepicker !== 'undefined') {
-                            const dateFormat = field.dateFormat || this.options.defaultDateFormat;
+                            const dateFormat = field.searchDateFormat || field.dateFormat || this.options.defaultDateFormat;
                             const containerDiv = document.createElement('div');
                             // Create hidden input
                             const hiddenInput = FTableDOMHelper.create('input', {
