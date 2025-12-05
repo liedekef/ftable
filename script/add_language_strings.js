@@ -6,7 +6,8 @@ const dir = './localization'; // <-- adjust to your actual path
 
 // Strings to add
 const newStrings = {
-  cloneRecord: 'Clone Record'
+  no: 'No',
+  yes: 'Yes'
 };
 
 // Convert object to string entries

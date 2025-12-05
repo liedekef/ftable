@@ -8,6 +8,8 @@
     editRecord: 'Edit record',
     areYouSure: 'Are you sure?',
     deleteConfirmation: 'This record will be deleted. Are you sure?',
+    yes: 'Yes',
+    no: 'No',
     save: 'Save',
     saving: 'Saving',
     cancel: 'Cancel',
@@ -1444,8 +1446,8 @@ class FTableFormBuilder {
         const isChecked = [1, '1', true, 'true'].includes(value);
 
         // Determine "Yes" and "No" labels
-        let dataNo = 'No';
-        let dataYes = 'Yes';
+        let dataNo = this.options.messages.no;
+        let dataYes = this.options.messages.yes;
 
         if (field.values && typeof field.values === 'object') {
             if (field.values['0'] !== undefined) dataNo = field.values['0'];
@@ -2255,19 +2257,10 @@ class FTable extends FTableEventEmitter {
                         break;
 
                     case 'checkbox':
-                        if (field.values) {
-                            input = await this.createSelectForSearch(fieldName, field, true);
-                        } else {
-                            input = FTableDOMHelper.create('input', {
-                                className: 'ftable-toolbarsearch',
-                                attributes: {
-                                    type: 'text',
-                                    'data-field-name': fieldName,
-                                    id: fieldSearchName,
-                                    placeholder: field.searchPlaceholder || field.placeholder || 'Search...'
-                                }
-                            });
+                        if (!field.values) {
+                            field.values = { '0' : this.options.messages.no, '1' : this.options.messages.yes }
                         }
+                        input = await this.createSelectForSearch(fieldName, field, true);
                         break;
 
                     case 'select':
@@ -3462,37 +3455,39 @@ class FTable extends FTableEventEmitter {
         const field = this.options.fields[fieldName];
         const value = record[fieldName];
         const options = customOptions || field.options;
-
-        if (field.display && typeof field.display === 'function') {
-            return field.display({ record, value });
-        }
+        let displayValue = value;
 
         if (field.type === 'date' && value) {
             if (typeof FDatepicker !== 'undefined') {
-                return FDatepicker.formatDate(this._parseDate(value), field.dateFormat || this.options.defaultDateFormat);
+                displayValue = FDatepicker.formatDate(this._parseDate(value), field.dateFormat || this.options.defaultDateFormat);
             } else {
-                return this.formatDate(value, field.dateLocale || this.options.defaultDateLocale );
+                displayValue = this.formatDate(value, field.dateLocale || this.options.defaultDateLocale );
             }
         }
 
         if ((field.type === 'datetime-local' || field.type === 'datetime') && value) {
             if (typeof FDatepicker !== 'undefined') {
-                return FDatepicker.formatDate(this._parseDate(value), field.dateFormat || this.options.defaultDateFormat);
+                displayValue = FDatepicker.formatDate(this._parseDate(value), field.dateFormat || this.options.defaultDateFormat);
             } else {
-                return this.formatDateTime(value, field.dateLocale || this.options.defaultDateLocale );
+                displayValue = this.formatDateTime(value, field.dateLocale || this.options.defaultDateLocale );
             }
         }
 
         if (field.type === 'checkbox') {
-            return this.getCheckboxText(fieldName, value);
+            displayValue = this.getCheckboxText(fieldName, value);
         }
 
         if (options) {
             const option = this.findOptionByValue(options, value);
-            return option ? option.DisplayText || option.text || option : value;
+            displayValue = option ? option.DisplayText || option.text || option : value;
         }
 
-        return value || '';
+        if (field.display && typeof field.display === 'function') {
+            displayValue = field.display({ record, value, displayValue });
+        }
+
+
+        return displayValue || '';
     }
 
     _parseDate(dateString) {
@@ -3549,7 +3544,7 @@ class FTable extends FTableEventEmitter {
         if (field.values && field.values[value]) {
             return field.values[value];
         }
-        return value ? 'Yes' : 'No';
+        return value ? this.options.messages.yes : this.options.messages.no;
     }
 
     findOptionByValue(options, value) {
