@@ -4315,7 +4315,6 @@ class FTable extends FTableEventEmitter {
     reload(preserveSelection = false) {
         this.clearListCache();
         if (preserveSelection) {
-            // Bewaar huidige selecties
             this.preservedSelections = new Set(this.state.selectedRecords);
         } else {
             this.state.selectedRecords.clear();
@@ -4323,7 +4322,6 @@ class FTable extends FTableEventEmitter {
 
         return this.load().then(() => {
             if (preserveSelection && this.preservedSelections) {
-                // Herstel selecties na reload
                 this.restoreSelections();
                 this.preservedSelections = null;
             }
@@ -4337,11 +4335,6 @@ class FTable extends FTableEventEmitter {
         }
     }
 
-    preserveCurrentSelections() {
-        this.preservedSelections = new Set(this.state.selectedRecords);
-        return this;
-    }
-
     restoreSelections() {
         if (!this.preservedSelections) return;
 
@@ -4352,8 +4345,6 @@ class FTable extends FTableEventEmitter {
                 this.selectRow(row);
             }
         });
-
-        this.emit('selectionChanged', { selectedRows: this.getSelectedRows() });
         return this;
     }
 
