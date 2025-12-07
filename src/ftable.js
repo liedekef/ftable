@@ -4311,15 +4311,49 @@ class FTable extends FTableEventEmitter {
     }
 
     // Public API Methods
-    reload() {
+    reload(preserveSelection = false) {
         this.clearListCache();
-        return this.load();
+        if (preserveSelection) {
+            // Bewaar huidige selecties
+            this.preservedSelections = new Set(this.state.selectedRecords);
+        } else {
+            this.state.selectedRecords.clear();
+        }
+
+        return this.load().then(() => {
+            if (preserveSelection && this.preservedSelections) {
+                // Herstel selecties na reload
+                this.restoreSelections();
+                this.preservedSelections = null;
+            }
+            return this;
+        });
     }
 
     clearListCache() {
         if (this.options.actions.listAction && typeof this.options.actions.listAction === 'string') {
             this.formBuilder.optionsCache.clear(this.options.actions.listAction);
         }
+    }
+
+    preserveCurrentSelections() {
+        this.preservedSelections = new Set(this.state.selectedRecords);
+        return this;
+    }
+
+    restoreSelections() {
+        if (!this.preservedSelections) return;
+
+        const rows = this.elements.tableBody.querySelectorAll('.ftable-data-row');
+        rows.forEach(row => {
+            const keyValue = this.getKeyValue(row.recordData);
+            if (keyValue && this.preservedSelections.has(keyValue)) {
+                this.selectRow(row);
+            }
+        });
+
+        this.emit('selectionChanged', { selectedRows: this.getSelectedRows() });
+        return this;
     }
 
     getRowByKey(key) {
