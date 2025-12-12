@@ -27,6 +27,9 @@ FTable is a clean, vanilla JavaScript rewrite of the popular `jTable` plugin, de
 
 ## Install
 
+Use one of the releases on github or download the files [directly](https://github.com/liedekef/ftable/tree/main)
+Or use npm:
+
 ```bash
 npm install @liedekef/ftable
 ```
