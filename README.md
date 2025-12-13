@@ -10,8 +10,8 @@ FTable is a clean, vanilla JavaScript rewrite of the popular `jTable` plugin, de
 ✅ MIT Licensed  
 
 ## Screenshots
-[![A screenshot of fTable](https://raw.githubusercontent.com/liedekef/ftable/master/screenshot.png)](https://github.com/liedekef/ftable/)
-[![Other screenshot, used in Events Made Easy](https://raw.githubusercontent.com/liedekef/ftable/master/screenshot2.png)](https://github.com/liedekef/ftable/)
+[![A screenshot of fTable](https://raw.githubusercontent.com/liedekef/ftable/main/screenshot.png)](https://github.com/liedekef/ftable/)
+[![Other screenshot, used in Events Made Easy](https://raw.githubusercontent.com/liedekef/ftable/main/screenshot2.png)](https://github.com/liedekef/ftable/)
 
 FTable is a clean, vanilla JavaScript rewrite of the popular `jTable` plugin, designed for modern web apps.
 

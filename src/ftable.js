@@ -1568,6 +1568,7 @@ class FTableFormBuilder {
             className: field.inputClass || '',
             attributes: attributes
         });
+        return input;
     }
 }
 
