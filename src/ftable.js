@@ -1063,10 +1063,10 @@ class FTableFormBuilder {
 
         let input;
 
-        if (value == undefined) {
+        if (value === undefined) {
             value = null;
         }
-        if (value == null && field.defaultValue ) {
+        if (value === null && field.defaultValue ) {
             value = field.defaultValue;
         }
         // Auto-detect select type if options are provided
