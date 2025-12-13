@@ -199,7 +199,7 @@ class FTableDOMHelper {
 
         if (options.attributes) {
             Object.entries(options.attributes).forEach(([key, value]) => {
-                if (value !== '')
+                if (value !== null)
                     element.setAttribute(key, value);
             });
         }
@@ -1064,7 +1064,10 @@ class FTableFormBuilder {
 
         let input;
 
-        if (value == null || value == undefined ) {
+        if (value == undefined) {
+            value = null;
+        }
+        if (value == null && field.defaultValue ) {
             value = field.defaultValue;
         }
         // Auto-detect select type if options are provided
@@ -1155,7 +1158,7 @@ class FTableFormBuilder {
                 attributes: {
                     id: 'real-' + fieldName,
                     type: 'hidden',
-                    value: value || '',
+                    value: value,
                     name: fieldName
                 }
             });
@@ -1165,7 +1168,7 @@ class FTableFormBuilder {
                 id: `Edit-${fieldName}`,
                 type: 'text',
                 'data-date': value,
-                placeholder: field.placeholder || '',
+                placeholder: field.placeholder || null,
                 readOnly: true
             };
             // Set any additional attributes
@@ -1219,8 +1222,8 @@ class FTableFormBuilder {
         const attributes = {
             type: inputType,
             id: `Edit-${fieldName}`,
-            placeholder: field.placeholder || '',
-            value: value || ''
+            placeholder: field.placeholder || null,
+            value: value
         };
 
         // extra check for name and multiple
@@ -1241,7 +1244,7 @@ class FTableFormBuilder {
         attributes.name = name;
 
         const input = FTableDOMHelper.create('input', {
-            className: field.inputClass || '',
+            className: field.inputClass || null,
             attributes: attributes
         });
 
@@ -1263,8 +1266,8 @@ class FTableFormBuilder {
             type: 'text',
             name: fieldName,
             id: `Edit-${fieldName}`,
-            placeholder: field.placeholder || '',
-            value: value || '',
+            placeholder: field.placeholder || null,
+            value: value,
             list: `${fieldName}-datalist`
         };
 
@@ -1275,7 +1278,7 @@ class FTableFormBuilder {
         }
 
         const input = FTableDOMHelper.create('input', {
-            className: field.inputClass || '',
+            className: field.inputClass || null,
             attributes: attributes
         });
 
@@ -1329,7 +1332,7 @@ class FTableFormBuilder {
             type: 'hidden',
             name: fieldName,
             id: `Edit-${fieldName}`,
-            value: value || ''
+            value: value
         };
 
         // Apply inputAttributes
@@ -1345,7 +1348,7 @@ class FTableFormBuilder {
         const attributes = {
             name: fieldName,
             id: `Edit-${fieldName}`,
-            placeholder: field.placeholder || ''
+            placeholder: field.placeholder || null
         };
 
         // Apply inputAttributes
@@ -1355,9 +1358,9 @@ class FTableFormBuilder {
         }
 
         const textarea = FTableDOMHelper.create('textarea', {
-            className: field.inputClass || '',
+            className: field.inputClass || null,
             attributes: attributes,
-            value: value || ''
+            value: value
         });
         return textarea;
     }
@@ -1386,7 +1389,7 @@ class FTableFormBuilder {
         attributes.name = name;
 
         const select = FTableDOMHelper.create('select', {
-            className: field.inputClass || '',
+            className: field.inputClass || null,
             attributes: attributes
         });
 
@@ -1431,7 +1434,7 @@ class FTableFormBuilder {
 
                 const radio = FTableDOMHelper.create('input', {
                     attributes: radioAttributes,
-                    className: field.inputClass || '',
+                    className: field.inputClass || null,
                     parent: radioWrapper
                 });
 
@@ -1565,11 +1568,10 @@ class FTableFormBuilder {
         }
         attributes.name = name;
 
-        const input = FTableDOMHelper.create('input', {
-            className: field.inputClass || '',
+        return FTableDOMHelper.create('input', {
+            className: field.inputClass || null,
             attributes: attributes
         });
-        return input;
     }
 }
 
