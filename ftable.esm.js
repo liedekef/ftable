@@ -2416,7 +2416,7 @@ class FTable extends FTableEventEmitter {
         if (!hasEmptyFirst) {
             FTableDOMHelper.create('option', {
                 attributes: { value: '' },
-                text: '',
+                html: '&nbsp;',
                 parent: select
             });
         }
