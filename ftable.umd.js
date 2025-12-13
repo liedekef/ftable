@@ -1130,10 +1130,16 @@ class FTableFormBuilder {
             // Otherwise, fallback to default
             else {
                 container.appendChild(input);
+                if (input.datalistElement && input.datalistElement instanceof Node) {
+                    container.appendChild(input.datalistElement);
+                }
             }
         } else {
             // No custom input function — just add the default input
             container.appendChild(input);
+            if (input.datalistElement && input.datalistElement instanceof Node) {
+                container.appendChild(input.datalistElement);
+            }
         }
 
         // Add explanation if provided
@@ -1295,10 +1301,7 @@ class FTableFormBuilder {
             this.populateDatalistOptions(datalist, field.options);
         }
 
-        // Append datalist to the document body or form
-        document.body.appendChild(datalist);
-
-        // Store reference for cleanup
+        // Store reference
         input.datalistElement = datalist;
 
         return input;
