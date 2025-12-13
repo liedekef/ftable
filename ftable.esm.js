@@ -1064,10 +1064,10 @@ class FTableFormBuilder {
 
         let input;
 
-        if (value == undefined) {
+        if (value === undefined) {
             value = null;
         }
-        if (value == null && field.defaultValue ) {
+        if (value === null && field.defaultValue ) {
             value = field.defaultValue;
         }
         // Auto-detect select type if options are provided
@@ -2298,6 +2298,10 @@ class FTable extends FTableEventEmitter {
                         }
                         break;
 
+                    case 'datalist':
+                        input = await this.createDatalistForSearch(fieldName, field);
+                        break;
+
                     default:
                         input = FTableDOMHelper.create('input', {
                             className: 'ftable-toolbarsearch',
@@ -2312,6 +2316,9 @@ class FTable extends FTableEventEmitter {
 
                 if (input) {
                     container.appendChild(input);
+                    if (input.datalistElement && input.datalistElement instanceof Node) {
+                        container.appendChild(input.datalistElement);
+                    }
 
                     if (input.tagName === 'SELECT') {
                         input.addEventListener('change', (e) => {
@@ -2435,6 +2442,48 @@ class FTable extends FTableEventEmitter {
         }
 
         return select;
+    }
+
+    async createDatalistForSearch(fieldName, field) {
+        const fieldSearchName = 'ftable-toolbarsearch-' + fieldName;
+
+        // Create the datalist element first
+        const datalistId = `${fieldSearchName}-datalist`;
+        const datalist = FTableDOMHelper.create('datalist', {
+            attributes: { id: datalistId }
+        });
+
+        // Create the input that uses the datalist
+        const input = FTableDOMHelper.create('input', {
+            className: 'ftable-toolbarsearch',
+            attributes: {
+                type: 'search',
+                'data-field-name': fieldName,
+                id: fieldSearchName,
+                list: datalistId,
+                placeholder: field.searchPlaceholder || field.placeholder || 'Type or select...'
+            }
+        });
+
+        // Store reference to datalist on the input element
+        input.datalistElement = datalist;
+
+        // Load options for the datalist
+        let optionsSource;
+
+        // Use search-specific options if available
+        if (field.searchOptions) {
+            optionsSource = field.searchOptions;
+        } else if (field.options) {
+            optionsSource = await this.formBuilder.getFieldOptions(fieldName, 'table');
+        }
+
+        // Populate datalist with options
+        if (optionsSource) {
+            this.formBuilder.populateDatalistOptions(datalist, optionsSource);
+        }
+
+        return input;
     }
 
     handleSearchInputChange(event) {
