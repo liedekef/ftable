@@ -1564,11 +1564,10 @@ class FTableFormBuilder {
         }
         attributes.name = name;
 
-        const input = FTableDOMHelper.create('input', {
+        return FTableDOMHelper.create('input', {
             className: field.inputClass || '',
             attributes: attributes
         });
-        return input;
     }
 }
 
