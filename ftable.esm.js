@@ -1362,9 +1362,9 @@ class FTableFormBuilder {
 
         const textarea = FTableDOMHelper.create('textarea', {
             className: field.inputClass || null,
-            attributes: attributes,
-            value: value
+            attributes: attributes
         });
+        textarea.value = value;
         return textarea;
     }
 
