@@ -211,6 +211,10 @@ class FTableDOMHelper {
             element.innerHTML = options.html;
         }
         
+        if (options.value) {
+            element.value = options.value;
+        }
+        
         if (options.parent) {
             options.parent.appendChild(element);
         }
