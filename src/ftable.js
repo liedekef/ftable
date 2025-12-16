@@ -185,37 +185,44 @@ class FTableLogger {
 }
 
 class FTableDOMHelper {
+    static PROPERTY_ATTRIBUTES = new Set([
+        'value', 'checked', 'selected', 'disabled', 'readOnly',
+        'name', 'id', 'type', 'placeholder', 'min', 'max',
+        'step', 'required', 'multiple', 'accept', 'className',
+        'textContent', 'innerHTML'
+    ]);
+
     static create(tag, options = {}) {
         const element = document.createElement(tag);
         
-        if (options.className) {
-            element.className = options.className;
-        }
-
-        if (options.style) {
+        // Handle special cases first
+        if (options.style !== undefined) {
             element.style.cssText = options.style;
+        }
+        if (options.html !== undefined) {
+            element.innerHTML = options.html;
         }
 
         if (options.attributes) {
             Object.entries(options.attributes).forEach(([key, value]) => {
-                if (value !== null)
-                    element.setAttribute(key, value);
+                if (value !== null) {
+                    // Use property if it exists on the element, otherwise use setAttribute
+                    if (FTableDOMHelper.PROPERTY_ATTRIBUTES.has(key)) {
+                        element[key] = value;
+                    } else {
+                        element.setAttribute(key, value);
+                    }
+                }
             });
         }
         
-        if (options.text) {
-            element.textContent = options.text;
-        }
-        
-        if (options.html) {
-            element.innerHTML = options.html;
-        }
-        
-        if (options.value) {
-            element.value = options.value;
-        }
-        
-        if (options.parent) {
+        FTableDOMHelper.PROPERTY_ATTRIBUTES.forEach(prop => {
+            if (prop in options) {
+                element[prop] = options[prop];
+            }
+        });
+
+        if (options.parent !== undefined) {
             options.parent.appendChild(element);
         }
         
@@ -475,14 +482,14 @@ class FtableModal {
         // Header
         const header = FTableDOMHelper.create('h2', {
             className: 'ftable-modal-header',
-            text: this.options.title,
+            textContent: this.options.title,
             parent: this.modal
         });
 
         // Close button
         const closeBtn = FTableDOMHelper.create('span', {
             className: 'ftable-modal-close',
-            html: '&times;',
+            innerHTML: '&times;',
             parent: this.modal
         });
 
@@ -510,7 +517,7 @@ class FtableModal {
             this.options.buttons.forEach(button => {
                 const btn = FTableDOMHelper.create('button', {
                     className: `ftable-dialog-button ${button.className || ''}`,
-                    html: `<span>${button.text}</span>`,
+                    innerHTML: `<span>${button.text}</span>`,
                     parent: footer
                 });
 
@@ -745,7 +752,7 @@ class FTableFormBuilder {
             // Label
             const label = FTableDOMHelper.create('div', {
                 className: 'ftable-input-label',
-                text: field.inputTitle || field.title,
+                textContent: field.inputTitle || field.title,
                 parent: container
             });
         }
@@ -1148,7 +1155,7 @@ class FTableFormBuilder {
         if (field.explain) {
             const explain = FTableDOMHelper.create('div', {
                 className: 'ftable-field-explain',
-                html: `<small>${field.explain}</small>`,
+                innerHTML: `<small>${field.explain}</small>`,
                 parent: container
             });
         }
@@ -1178,6 +1185,7 @@ class FTableFormBuilder {
                 type: 'text',
                 'data-date': value,
                 placeholder: field.placeholder || null,
+                className: field.inputClass || 'datepicker-input',
                 readOnly: true
             };
             // Set any additional attributes
@@ -1186,10 +1194,7 @@ class FTableFormBuilder {
                 Object.assign(attributes, parsed);
             }
 
-            const visibleInput = FTableDOMHelper.create('input', {
-                className: field.inputClass || 'datepicker-input',
-                attributes: attributes
-            });
+            const visibleInput = FTableDOMHelper.create('input', { attributes: attributes });
 
             // Append both inputs
             container.appendChild(hiddenInput);
@@ -1231,6 +1236,7 @@ class FTableFormBuilder {
         const attributes = {
             type: inputType,
             id: `Edit-${fieldName}`,
+            className: field.inputClass || null,
             placeholder: field.placeholder || null,
             value: value
         };
@@ -1252,10 +1258,7 @@ class FTableFormBuilder {
         }
         attributes.name = name;
 
-        const input = FTableDOMHelper.create('input', {
-            className: field.inputClass || null,
-            attributes: attributes
-        });
+        const input = FTableDOMHelper.create('input', { attributes: attributes });
 
         // Prevent form submit on Enter, trigger change instead
         input.addEventListener('keypress', (e) => {
@@ -1275,6 +1278,7 @@ class FTableFormBuilder {
             type: 'text',
             name: fieldName,
             id: `Edit-${fieldName}`,
+            className: field.inputClass || null,
             placeholder: field.placeholder || null,
             value: value,
             list: `${fieldName}-datalist`
@@ -1286,10 +1290,7 @@ class FTableFormBuilder {
             Object.assign(attributes, parsed);
         }
 
-        const input = FTableDOMHelper.create('input', {
-            className: field.inputClass || null,
-            attributes: attributes
-        });
+        const input = FTableDOMHelper.create('input', { attributes: attributes });
 
         // Create the datalist element
         const datalist = FTableDOMHelper.create('datalist', {
@@ -1318,7 +1319,7 @@ class FTableFormBuilder {
                     attributes: {
                         value: option.Value || option.value || option
                     },
-                    text: option.DisplayText || option.text || option,
+                    textContent: option.DisplayText || option.text || option,
                     parent: datalist
                 });
             });
@@ -1326,7 +1327,7 @@ class FTableFormBuilder {
             Object.entries(options).forEach(([key, text]) => {
                 FTableDOMHelper.create('option', {
                     attributes: { value: key },
-                    text: text,
+                    textContent: text,
                     parent: datalist
                 });
             });
@@ -1354,7 +1355,9 @@ class FTableFormBuilder {
         const attributes = {
             name: fieldName,
             id: `Edit-${fieldName}`,
-            placeholder: field.placeholder || null
+            className: field.inputClass || null,
+            placeholder: field.placeholder || null,
+            value = value
         };
 
         // Apply inputAttributes
@@ -1363,18 +1366,14 @@ class FTableFormBuilder {
             Object.assign(attributes, parsed);
         }
 
-        const textarea = FTableDOMHelper.create('textarea', {
-            className: field.inputClass || null,
-            attributes: attributes
-        });
-        textarea.value = value;
-        return textarea;
+        return FTableDOMHelper.create('textarea', { attributes: attributes });
     }
 
     createSelect(fieldName, field, value) {
         const attributes = {
             name: fieldName,
             id: `Edit-${fieldName}`,
+            className: field.inputClass || null
         };
 
         // extra check for name and multiple
@@ -1394,10 +1393,7 @@ class FTableFormBuilder {
         }
         attributes.name = name;
 
-        const select = FTableDOMHelper.create('select', {
-            className: field.inputClass || null,
-            attributes: attributes
-        });
+        const select = FTableDOMHelper.create('select', { attributes: attributes });
 
         if (field.options) {
             this.populateSelectOptions(select, field.options, value);
@@ -1450,7 +1446,7 @@ class FTableFormBuilder {
 
                 const label = FTableDOMHelper.create('label', {
                     attributes: { for: radioId },
-                    text: option.DisplayText || option.text || option,
+                    textContent: option.DisplayText || option.text || option,
                     parent: radioWrapper
                 });
             });
@@ -1495,7 +1491,7 @@ class FTableFormBuilder {
                 attributes: {
                     for: `Edit-${fieldName}`,
                 },
-                text: field.label,
+                textContent: field.label,
                 parent: wrapper
             });
         } else {
@@ -1523,7 +1519,7 @@ class FTableFormBuilder {
                     option; // fallback for string
                 const optionElement = FTableDOMHelper.create('option', {
                     attributes: { value: value },
-                    text: option.DisplayText || option.text || option,
+                    textContent: option.DisplayText || option.text || option,
                     parent: select
                 });
 
@@ -1541,7 +1537,7 @@ class FTableFormBuilder {
             Object.entries(options).forEach(([key, text]) => {
                 const optionElement = FTableDOMHelper.create('option', {
                     attributes: { value: key },
-                    text: text,
+                    textContent: text,
                     parent: select
                 });
 
@@ -1900,7 +1896,7 @@ class FTable extends FTableEventEmitter {
         });
 
         FTableDOMHelper.create('span', {
-            text: this.options.messages.pageSizeChangeLabel,
+            textContent: this.options.messages.pageSizeChangeLabel,
             parent: container
         });
 
@@ -1913,7 +1909,7 @@ class FTable extends FTableEventEmitter {
         pageSizes.forEach(size => {
             const option = FTableDOMHelper.create('option', {
                 attributes: { value: size },
-                text: size.toString(),
+                textContent: size.toString(),
                 parent: select
             });
 
@@ -2024,7 +2020,7 @@ class FTable extends FTableEventEmitter {
 
             FTableDOMHelper.create('div', {
                 className: 'ftable-title-text',
-                html: this.options.title,
+                innerHTML: this.options.title,
                 parent: this.elements.titleDiv
             });
         }
@@ -2110,7 +2106,7 @@ class FTable extends FTableEventEmitter {
 
             const textHeader = FTableDOMHelper.create('span', {
                 className: 'ftable-column-header-text',
-                html: field.title || fieldName,
+                innerHTML: field.title || fieldName,
                 parent: container
             });
 
@@ -2360,7 +2356,7 @@ class FTable extends FTableEventEmitter {
 
             const resetButton = FTableDOMHelper.create('button', {
                 className: 'ftable-toolbarsearch-reset-button',
-                text: this.options.messages.resetSearch,
+                textContent: this.options.messages.resetSearch,
                 attributes : {
                     id: 'ftable-toolbarsearch-reset-button'
                 },
@@ -2419,7 +2415,7 @@ class FTable extends FTableEventEmitter {
         if (!hasEmptyFirst) {
             FTableDOMHelper.create('option', {
                 attributes: { value: '' },
-                html: '&nbsp;',
+                innerHTML: '&nbsp;',
                 parent: select
             });
         }
@@ -2430,7 +2426,7 @@ class FTable extends FTableEventEmitter {
                     attributes: {
                         value: option.Value !== undefined ? option.Value : option.value !== undefined ? option.value : option
                     },
-                    text: option.DisplayText || option.text || option,
+                    textContent: option.DisplayText || option.text || option,
                     parent: select
                 });
             });
@@ -2438,7 +2434,7 @@ class FTable extends FTableEventEmitter {
             Object.entries(optionsSource).forEach(([key, text]) => {
                 FTableDOMHelper.create('option', {
                     attributes: { value: key },
-                    text: text,
+                    textContent: text,
                     parent: select
                 });
             });
@@ -2740,7 +2736,7 @@ class FTable extends FTableEventEmitter {
         const colCount = this.elements.table.querySelector('thead tr').children.length;
         FTableDOMHelper.create('td', {
             attributes: { colspan: colCount },
-            text: this.options.messages.noDataAvailable,
+            textContent: this.options.messages.noDataAvailable,
             parent: row
         });
     }
@@ -3035,7 +3031,7 @@ class FTable extends FTableEventEmitter {
             }
 
             const labelText = FTableDOMHelper.create('span', {
-                text: field.title || fieldName,
+                textContent: field.title || fieldName,
                 style: isSeparator ? 'font-weight: bold;' : null,
                 parent: label
             });
@@ -3044,7 +3040,7 @@ class FTable extends FTableEventEmitter {
             if (isSorted) {
                 const sortIndicator = FTableDOMHelper.create('span', {
                     className: 'ftable-sort-indicator',
-                    text: ' (sorted)',
+                    textContent: ' (sorted)',
                     parent: labelText
                 });
                 sortIndicator.style.fontSize = '0.8em';
@@ -3098,7 +3094,7 @@ class FTable extends FTableEventEmitter {
         // CSV Export Button
         if (this.options.csvExport) {
             this.addToolbarButton({
-                text: this.options.messages.csvExport,
+                textContent: this.options.messages.csvExport,
                 className: 'ftable-toolbar-item-csv',
                 onClick: () => {
                     const filename = this.options.title
@@ -3111,7 +3107,7 @@ class FTable extends FTableEventEmitter {
         // Print Button
         if (this.options.printTable) {
             this.addToolbarButton({
-                text: this.options.messages.printTable,
+                textContent: this.options.messages.printTable,
                 className: 'ftable-toolbar-item-print',
                 onClick: () => {
                     this.printTable();
@@ -3121,7 +3117,7 @@ class FTable extends FTableEventEmitter {
 
         if (this.options.actions.createAction) {
             this.addToolbarButton({
-                text: this.options.messages.addNewRecord,
+                textContent: this.options.messages.addNewRecord,
                 className: 'ftable-toolbar-item-add-record',
                 addIconSpan: true,
                 onClick: () => this.showAddRecordForm()
@@ -3143,7 +3139,7 @@ class FTable extends FTableEventEmitter {
         }
         const buttonText = FTableDOMHelper.create('span', {
             className: `ftable-toolbar-item-text ${options.className || ''}`,
-            text: options.text,
+            textContent: options.text,
             parent: button
         });
 
@@ -3185,7 +3181,7 @@ class FTable extends FTableEventEmitter {
             // Add text
             if (item.text) {
                 FTableDOMHelper.create('span', {
-                    text: item.text,
+                    textContent: item.text,
                     className: `ftable-toolbar-item-text ftable-toolbar-item-custom-text ${item.buttonTextClass || ''}`,
                     parent: button
                 });
@@ -3452,7 +3448,7 @@ class FTable extends FTableEventEmitter {
         
         const cell = FTableDOMHelper.create('td', {
             className: `${field.listClass || ''} ${field.listClassEntry || ''}`,
-            html: field.listEscapeHTML ? FTableDOMHelper.escapeHtml(value) : value,
+            innerHTML: field.listEscapeHTML ? FTableDOMHelper.escapeHtml(value) : value,
             attributes: { 'data-field-name': fieldName },
             parent: row
         });
@@ -3473,7 +3469,7 @@ class FTable extends FTableEventEmitter {
         const button = FTableDOMHelper.create('button', {
             className: 'ftable-command-button ftable-edit-command-button',
             attributes: { title: this.options.messages.editRecord },
-            html: `<span>${this.options.messages.editRecord}</span>`,
+            innerHTML: `<span>${this.options.messages.editRecord}</span>`,
             parent: cell
         });
 
@@ -3492,7 +3488,7 @@ class FTable extends FTableEventEmitter {
         const button = FTableDOMHelper.create('button', {
             className: 'ftable-command-button ftable-clone-command-button',
             attributes: { title: this.options.messages.cloneRecord || 'Clone' },
-            html: `<span>${this.options.messages.cloneRecord || 'Clone'}</span>`,
+            innerHTML: `<span>${this.options.messages.cloneRecord || 'Clone'}</span>`,
             parent: cell
         });
         button.addEventListener('click', (e) => {
@@ -3511,7 +3507,7 @@ class FTable extends FTableEventEmitter {
         const button = FTableDOMHelper.create('button', {
             className: 'ftable-command-button ftable-delete-command-button',
             attributes: { title: this.options.messages.deleteText },
-            html: `<span>${this.options.messages.deleteText}</span>`,
+            innerHTML: `<span>${this.options.messages.deleteText}</span>`,
             parent: cell
         });
 
@@ -4179,7 +4175,7 @@ class FTable extends FTableEventEmitter {
                 if (pageNum - lastNumber > 1) {
                     FTableDOMHelper.create('span', {
                         className: 'ftable-page-number-space',
-                        text: '...',
+                        textContent: '...',
                         parent: this.elements.pagingListArea
                     });
                 }
@@ -4219,7 +4215,7 @@ class FTable extends FTableEventEmitter {
 
         // Label
         const label = FTableDOMHelper.create('span', {
-            text: this.options.messages.gotoPageLabel + ': ',
+            textContent: this.options.messages.gotoPageLabel + ': ',
             parent: this.elements.pagingGotoArea
         });
 
@@ -4236,7 +4232,7 @@ class FTable extends FTableEventEmitter {
             for (let i = 1; i <= totalPages; i++) {
                 FTableDOMHelper.create('option', {
                     attributes: { value: i },
-                    text: i,
+                    textContent: i,
                     parent: this.elements.gotoPageSelect
                 });
             }
@@ -4280,7 +4276,7 @@ class FTable extends FTableEventEmitter {
     createPageButton(text, pageNumber, disabled, className) {
         const button = FTableDOMHelper.create('span', {
             className: className + (disabled ? ' ftable-page-number-disabled' : ''),
-            html: text,
+            innerHTML: text,
             parent: this.elements.pagingListArea
         });
 
