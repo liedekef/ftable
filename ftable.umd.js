@@ -3141,10 +3141,10 @@ class FTable extends FTableEventEmitter {
     createCustomToolbarItems() {
         if (!this.options.toolbar || !this.options.toolbar.items) return;
 
-        this.options.toolbar.items.forEach(item => {
+        this.options.toolbar.items.forEach((item, index) => {
             const button = FTableDOMHelper.create('span', {
                 className: `ftable-toolbar-item ftable-toolbar-item-custom ${item.buttonClass || ''}`,
-                id: item.buttonId || '',
+                id: item.buttonId || `ftable-toolbar-item-custom-id-${index}`,
                 parent: this.elements.toolbarDiv
             });
 
@@ -3172,7 +3172,7 @@ class FTable extends FTableEventEmitter {
                 FTableDOMHelper.create('span', {
                     textContent: item.text,
                     className: `ftable-toolbar-item-text ftable-toolbar-item-custom-text ${item.buttonTextClass || ''}`,
-                    id: item.buttonTextId || '',
+                    id: item.buttonTextId || `ftable-toolbar-item-custom-text-id-${index}`,
                     parent: button
                 });
             }
