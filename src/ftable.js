@@ -199,10 +199,18 @@ class FTableDOMHelper {
         if (options.style !== undefined) {
             element.style.cssText = options.style;
         }
-        if (options.html !== undefined) {
-            element.innerHTML = options.html;
+        
+        FTableDOMHelper.PROPERTY_ATTRIBUTES.forEach(prop => {
+            if (prop in options && options[prop] !== null) {
+                element[prop] = options[prop];
+            }
+        });
+
+        if (options.parent !== undefined) {
+            options.parent.appendChild(element);
         }
 
+        // the attributes last, so we can override stuff if needed
         if (options.attributes) {
             Object.entries(options.attributes).forEach(([key, value]) => {
                 if (value !== null) {
@@ -214,16 +222,6 @@ class FTableDOMHelper {
                     }
                 }
             });
-        }
-        
-        FTableDOMHelper.PROPERTY_ATTRIBUTES.forEach(prop => {
-            if (prop in options) {
-                element[prop] = options[prop];
-            }
-        });
-
-        if (options.parent !== undefined) {
-            options.parent.appendChild(element);
         }
         
         return element;
@@ -1171,22 +1169,15 @@ class FTableFormBuilder {
             const container = document.createElement('div');
             // Create hidden input
             const hiddenInput = FTableDOMHelper.create('input', {
-                attributes: {
-                    id: 'real-' + fieldName,
-                    type: 'hidden',
-                    value: value,
-                    name: fieldName
-                }
+                id: 'real-' + fieldName,
+                type: 'hidden',
+                value: value,
+                name: fieldName
             });
 
             // Create visible input
             const attributes = {
-                id: `Edit-${fieldName}`,
-                type: 'text',
-                'data-date': value,
-                placeholder: field.placeholder || null,
-                className: field.inputClass || 'datepicker-input',
-                readOnly: true
+                'data-date': value
             };
             // Set any additional attributes
             if (field.inputAttributes) {
@@ -1194,7 +1185,14 @@ class FTableFormBuilder {
                 Object.assign(attributes, parsed);
             }
 
-            const visibleInput = FTableDOMHelper.create('input', { attributes: attributes });
+            const visibleInput = FTableDOMHelper.create('input', { 
+                attributes: attributes,
+                id: `Edit-${fieldName}`,
+                type: 'text',
+                placeholder: field.placeholder || null,
+                className: field.inputClass || 'datepicker-input',
+                readOnly: true
+            });
 
             // Append both inputs
             container.appendChild(hiddenInput);
@@ -1233,13 +1231,7 @@ class FTableFormBuilder {
 
     createTypedInput(fieldName, field, value) {
         const inputType = field.type || 'text';
-        const attributes = {
-            type: inputType,
-            id: `Edit-${fieldName}`,
-            className: field.inputClass || null,
-            placeholder: field.placeholder || null,
-            value: value
-        };
+        const attributes = { };
 
         // extra check for name and multiple
         let name = fieldName;
@@ -1256,9 +1248,16 @@ class FTableFormBuilder {
                 name = `${fieldName}[]`;
             }
         }
-        attributes.name = name;
 
-        const input = FTableDOMHelper.create('input', { attributes: attributes });
+        const input = FTableDOMHelper.create('input', { 
+            attributes: attributes,
+            type: inputType,
+            id: `Edit-${fieldName}`,
+            className: field.inputClass || null,
+            placeholder: field.placeholder || null,
+            value: value,
+            name: name
+        });
 
         // Prevent form submit on Enter, trigger change instead
         input.addEventListener('keypress', (e) => {
@@ -1275,12 +1274,6 @@ class FTableFormBuilder {
 
     createDatalistInput(fieldName, field, value) {
         const attributes = {
-            type: 'text',
-            name: fieldName,
-            id: `Edit-${fieldName}`,
-            className: field.inputClass || null,
-            placeholder: field.placeholder || null,
-            value: value,
             list: `${fieldName}-datalist`
         };
 
@@ -1290,13 +1283,19 @@ class FTableFormBuilder {
             Object.assign(attributes, parsed);
         }
 
-        const input = FTableDOMHelper.create('input', { attributes: attributes });
+        const input = FTableDOMHelper.create('input', {
+            attributes: attributes,
+            type: 'text',
+            name: fieldName,
+            id: `Edit-${fieldName}`,
+            className: field.inputClass || null,
+            placeholder: field.placeholder || null,
+            value: value
+        });
 
         // Create the datalist element
         const datalist = FTableDOMHelper.create('datalist', {
-            attributes: {
-                id: `${fieldName}-datalist`
-            }
+            id: `${fieldName}-datalist`
         });
 
         // Populate datalist options
@@ -1316,9 +1315,7 @@ class FTableFormBuilder {
         if (Array.isArray(options)) {
             options.forEach(option => {
                 FTableDOMHelper.create('option', {
-                    attributes: {
-                        value: option.Value || option.value || option
-                    },
+                    value: option.Value || option.value || option,
                     textContent: option.DisplayText || option.text || option,
                     parent: datalist
                 });
@@ -1326,7 +1323,7 @@ class FTableFormBuilder {
         } else if (typeof options === 'object') {
             Object.entries(options).forEach(([key, text]) => {
                 FTableDOMHelper.create('option', {
-                    attributes: { value: key },
+                    value: key,
                     textContent: text,
                     parent: datalist
                 });
@@ -1335,12 +1332,7 @@ class FTableFormBuilder {
     }
 
     createHiddenInput(fieldName, field, value) {
-        const attributes = {
-            type: 'hidden',
-            name: fieldName,
-            id: `Edit-${fieldName}`,
-            value: value
-        };
+        const attributes = { };
 
         // Apply inputAttributes
         if (field.inputAttributes) {
@@ -1348,33 +1340,36 @@ class FTableFormBuilder {
             Object.assign(attributes, parsed);
         }
 
-        return FTableDOMHelper.create('input', { attributes });
+        return FTableDOMHelper.create('input', {
+            attributes: attributes,
+            type: 'hidden',
+            name: fieldName,
+            id: `Edit-${fieldName}`,
+            value: value
+        });
     }
 
     createTextarea(fieldName, field, value) {
-        const attributes = {
+        const attributes = { };
+
+        // Apply inputAttributes
+        if (field.inputAttributes) {
+            const parsed = this.parseInputAttributes(field.inputAttributes);
+            Object.assign(attributes, parsed);
+        }
+
+        return FTableDOMHelper.create('textarea', {
+            attributes: attributes,
             name: fieldName,
             id: `Edit-${fieldName}`,
             className: field.inputClass || null,
             placeholder: field.placeholder || null,
             value = value
-        };
-
-        // Apply inputAttributes
-        if (field.inputAttributes) {
-            const parsed = this.parseInputAttributes(field.inputAttributes);
-            Object.assign(attributes, parsed);
-        }
-
-        return FTableDOMHelper.create('textarea', { attributes: attributes });
+        });
     }
 
     createSelect(fieldName, field, value) {
-        const attributes = {
-            name: fieldName,
-            id: `Edit-${fieldName}`,
-            className: field.inputClass || null
-        };
+        const attributes = { };
 
         // extra check for name and multiple
         let name = fieldName;
@@ -1393,7 +1388,12 @@ class FTableFormBuilder {
         }
         attributes.name = name;
 
-        const select = FTableDOMHelper.create('select', { attributes: attributes });
+        const select = FTableDOMHelper.create('select', {
+            attributes: attributes,
+            name: fieldName,
+            id: `Edit-${fieldName}`,
+            className: field.inputClass || null
+        });
 
         if (field.options) {
             this.populateSelectOptions(select, field.options, value);
@@ -1418,15 +1418,7 @@ class FTableFormBuilder {
                 });
 
                 const radioId = `${fieldName}_${index}`;
-                const radioAttributes = {
-                    type: 'radio',
-                    name: fieldName,
-                    id: radioId,
-                    value: option.Value || option.value || option
-                };
-
-                if (field.required && index === 0) radioAttributes.required = 'required';
-                if (field.disabled) radioAttributes.disabled = 'disabled';
+                const radioAttributes = { };
 
                 // Apply inputAttributes
                 if (field.inputAttributes) {
@@ -1434,15 +1426,22 @@ class FTableFormBuilder {
                     Object.assign(radioAttributes, parsed);
                 }
 
+                const fieldValue = option.Value !== undefined ? option.Value :
+                    option.value !== undefined ? option.value :
+                    option; // fallback for string
+
                 const radio = FTableDOMHelper.create('input', {
                     attributes: radioAttributes,
+                    type: 'radio',
+                    name: fieldName,
+                    id: radioId,
+                    value: fieldValue,
                     className: field.inputClass || null,
+                    required: field.required && index === 0,
+                    disabled: field.disabled,
+                    checked: fieldValue == value,
                     parent: radioWrapper
                 });
-
-                if (radioAttributes.value === value) {
-                    radio.checked = true;
-                }
 
                 const label = FTableDOMHelper.create('label', {
                     attributes: { for: radioId },
@@ -1474,12 +1473,10 @@ class FTableFormBuilder {
         // Create the checkbox
         const checkbox = FTableDOMHelper.create('input', {
             className: ['ftable-yesno-check-input', field.inputClass || ''].filter(Boolean).join(' '),
-            attributes: {
-                type: 'checkbox',
-                name: fieldName,
-                id: `Edit-${fieldName}`,
-                value: '1'
-            },
+            type: 'checkbox',
+            name: fieldName,
+            id: `Edit-${fieldName}`,
+            value: '1',
             parent: wrapper
         });
         checkbox.checked = isChecked;
@@ -1518,8 +1515,9 @@ class FTableFormBuilder {
                     option.value !== undefined ? option.value :
                     option; // fallback for string
                 const optionElement = FTableDOMHelper.create('option', {
-                    attributes: { value: value },
+                    value: value,
                     textContent: option.DisplayText || option.text || option,
+                    selected: value == selectedValue,
                     parent: select
                 });
 
@@ -1529,30 +1527,21 @@ class FTableFormBuilder {
                     });
                 }
 
-                if (optionElement.value == selectedValue) {
-                    optionElement.selected = true;
-                }
             });
         } else if (typeof options === 'object') {
             Object.entries(options).forEach(([key, text]) => {
                 const optionElement = FTableDOMHelper.create('option', {
-                    attributes: { value: key },
+                    value: key,
                     textContent: text,
+                    selected: key == selectedValue,
                     parent: select
                 });
-
-                if (key == selectedValue) {
-                    optionElement.selected = true;
-                }
             });
         }
     }
 
     createFileInput(fieldName, field, value) {
-        const attributes = {
-            type: 'file',
-            id: `Edit-${fieldName}`,
-        };
+        const attributes = { };
  
         // extra check for name and multiple
         let name = fieldName;
@@ -1568,9 +1557,11 @@ class FTableFormBuilder {
                 name = `${fieldName}[]`;
             }
         }
-        attributes.name = name;
 
         return FTableDOMHelper.create('input', {
+            type: 'file',
+            id: `Edit-${fieldName}`,
+            name: name,
             className: field.inputClass || null,
             attributes: attributes
         });
@@ -2215,21 +2206,19 @@ class FTable extends FTableEventEmitter {
                             // Create hidden input
                             const hiddenInput = FTableDOMHelper.create('input', {
                                 className: 'ftable-toolbarsearch-extra',
+                                type: 'hidden',
+                                id: 'ftable-toolbarsearch-extra-' + fieldName,
                                 attributes: {
-                                    type: 'hidden',
                                     'data-field-name': fieldName,
-                                    id: 'ftable-toolbarsearch-extra-' + fieldName,
                                 }
                             });
                             // Create visible input
                             const visibleInput = FTableDOMHelper.create('input', {
                                 className: 'ftable-toolbarsearch',
-                                attributes: {
-                                    id: 'ftable-toolbarsearch-' + fieldName,
-                                    type: 'text',
-                                    placeholder: field.searchPlaceholder || field.placeholder || '',
-                                    readOnly: true
-                                }
+                                id: 'ftable-toolbarsearch-' + fieldName,
+                                type: 'text',
+                                placeholder: field.searchPlaceholder || field.placeholder || '',
+                                readOnly: true
                             });
                             // Append both inputs
                             containerDiv.appendChild(hiddenInput);
@@ -2265,10 +2254,10 @@ class FTable extends FTableEventEmitter {
                         } else {
                             input = FTableDOMHelper.create('input', {
                                 className: 'ftable-toolbarsearch',
+                                type: 'date',
+                                id: fieldSearchName,
                                 attributes: {
-                                    type: 'date',
                                     'data-field-name': fieldName,
-                                    id: fieldSearchName,
                                 }
                             });
                         }
@@ -2287,11 +2276,11 @@ class FTable extends FTableEventEmitter {
                         } else {
                             input = FTableDOMHelper.create('input', {
                                 className: 'ftable-toolbarsearch',
+                                type: 'text',
+                                id: fieldSearchName,
+                                placeholder: field.searchPlaceholder || field.placeholder || 'Search...',
                                 attributes: {
-                                    type: 'text',
-                                    'data-field-name': fieldName,
-                                    id: fieldSearchName,
-                                    placeholder: field.searchPlaceholder || field.placeholder || 'Search...'
+                                    'data-field-name': fieldName
                                 }
                             });
                         }
@@ -2304,11 +2293,11 @@ class FTable extends FTableEventEmitter {
                     default:
                         input = FTableDOMHelper.create('input', {
                             className: 'ftable-toolbarsearch',
+                            type: 'text',
+                            id: fieldSearchName,
+                            placeholder: field.searchPlaceholder || field.placeholder || 'Search...',
                             attributes: {
-                                type: 'text',
-                                'data-field-name': fieldName,
-                                id: fieldSearchName,
-                                placeholder: field.searchPlaceholder || field.placeholder || 'Search...'
+                                'data-field-name': fieldName
                             }
                         });
                 }
@@ -2369,7 +2358,6 @@ class FTable extends FTableEventEmitter {
     async createSelectForSearch(fieldName, field, isCheckboxValues) {
         const fieldSearchName = 'ftable-toolbarsearch-' + fieldName;
         const attributes = {
-            id: fieldSearchName,
         };
 
         // extra check for name and multiple
@@ -2392,6 +2380,7 @@ class FTable extends FTableEventEmitter {
 
         const select = FTableDOMHelper.create('select', {
             attributes: attributes,
+            id: fieldSearchName,
             className: 'ftable-toolbarsearch'
         });
 
@@ -2423,9 +2412,7 @@ class FTable extends FTableEventEmitter {
         if (optionsSource && Array.isArray(optionsSource)) {
             optionsSource.forEach(option => {
                 const optionElement = FTableDOMHelper.create('option', {
-                    attributes: {
-                        value: option.Value !== undefined ? option.Value : option.value !== undefined ? option.value : option
-                    },
+                    value: option.Value !== undefined ? option.Value : option.value !== undefined ? option.value : option,
                     textContent: option.DisplayText || option.text || option,
                     parent: select
                 });
@@ -2433,7 +2420,7 @@ class FTable extends FTableEventEmitter {
         } else if (optionsSource && typeof optionsSource === 'object') {
             Object.entries(optionsSource).forEach(([key, text]) => {
                 FTableDOMHelper.create('option', {
-                    attributes: { value: key },
+                    value: key,
                     textContent: text,
                     parent: select
                 });
@@ -2455,12 +2442,12 @@ class FTable extends FTableEventEmitter {
         // Create the input that uses the datalist
         const input = FTableDOMHelper.create('input', {
             className: 'ftable-toolbarsearch',
+            type: 'search',
+            id: fieldSearchName,
+            placeholder: field.searchPlaceholder || field.placeholder || 'Type or select...',
             attributes: {
-                type: 'search',
                 'data-field-name': fieldName,
-                id: fieldSearchName,
-                list: datalistId,
-                placeholder: field.searchPlaceholder || field.placeholder || 'Type or select...'
+                list: datalistId
             }
         });
 
@@ -3094,7 +3081,7 @@ class FTable extends FTableEventEmitter {
         // CSV Export Button
         if (this.options.csvExport) {
             this.addToolbarButton({
-                textContent: this.options.messages.csvExport,
+                text: this.options.messages.csvExport,
                 className: 'ftable-toolbar-item-csv',
                 onClick: () => {
                     const filename = this.options.title
@@ -3107,7 +3094,7 @@ class FTable extends FTableEventEmitter {
         // Print Button
         if (this.options.printTable) {
             this.addToolbarButton({
-                textContent: this.options.messages.printTable,
+                text: this.options.messages.printTable,
                 className: 'ftable-toolbar-item-print',
                 onClick: () => {
                     this.printTable();
@@ -3117,7 +3104,7 @@ class FTable extends FTableEventEmitter {
 
         if (this.options.actions.createAction) {
             this.addToolbarButton({
-                textContent: this.options.messages.addNewRecord,
+                text: this.options.messages.addNewRecord,
                 className: 'ftable-toolbar-item-add-record',
                 addIconSpan: true,
                 onClick: () => this.showAddRecordForm()
