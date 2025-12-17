@@ -1287,7 +1287,7 @@ class FTableFormBuilder {
 
         const input = FTableDOMHelper.create('input', {
             attributes: attributes,
-            type: 'text',
+            type: 'search',
             name: fieldName,
             id: `Edit-${fieldName}`,
             className: field.inputClass || null,
@@ -2235,7 +2235,8 @@ class FTable extends FTableEventEmitter {
                                         const picker = new FDatepicker(visibleInput, {
                                             format: dateFormat,
                                             altField: 'ftable-toolbarsearch-extra-' + fieldName,
-                                            altFormat: 'Y-m-d'
+                                            altFormat: 'Y-m-d',
+                                            autoClose: true
                                         });
                                     }, 0);
                                     break;
@@ -2256,7 +2257,7 @@ class FTable extends FTableEventEmitter {
                         } else {
                             input = FTableDOMHelper.create('input', {
                                 className: 'ftable-toolbarsearch',
-                                type: 'date',
+                                type: searchType,
                                 id: fieldSearchName,
                                 attributes: {
                                     'data-field-name': fieldName,
@@ -2405,7 +2406,7 @@ class FTable extends FTableEventEmitter {
 
         if (!hasEmptyFirst) {
             FTableDOMHelper.create('option', {
-                attributes: { value: '' },
+                value: '',
                 innerHTML: '&nbsp;',
                 parent: select
             });
