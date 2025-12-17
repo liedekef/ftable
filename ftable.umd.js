@@ -1439,8 +1439,6 @@ class FTableFormBuilder {
                     id: radioId,
                     value: fieldValue,
                     className: field.inputClass || null,
-                    required: field.required && index === 0,
-                    disabled: field.disabled,
                     checked: fieldValue == value,
                     parent: radioWrapper
                 });
@@ -3146,6 +3144,7 @@ class FTable extends FTableEventEmitter {
         this.options.toolbar.items.forEach(item => {
             const button = FTableDOMHelper.create('span', {
                 className: `ftable-toolbar-item ftable-toolbar-item-custom ${item.buttonClass || ''}`,
+                id: item.buttonId || '',
                 parent: this.elements.toolbarDiv
             });
 
@@ -3173,6 +3172,7 @@ class FTable extends FTableEventEmitter {
                 FTableDOMHelper.create('span', {
                     textContent: item.text,
                     className: `ftable-toolbar-item-text ftable-toolbar-item-custom-text ${item.buttonTextClass || ''}`,
+                    id: item.buttonTextId || '',
                     parent: button
                 });
             }
