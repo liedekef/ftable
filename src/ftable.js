@@ -3132,8 +3132,7 @@ class FTable extends FTableEventEmitter {
             if (options.text) {
                 // Remove the textContent we set earlier
                 button.textContent = '';
-                button.appendChild(iconSpan);
-                button.append(options.text);
+                button.append(iconSpan, options.text || '');
             }
         }
 
@@ -3154,8 +3153,7 @@ class FTable extends FTableEventEmitter {
             if (options.text) {
                 // Remove the textContent we set earlier
                 button.textContent = '';
-                button.appendChild(img);
-                button.append(options.text);
+                button.append(img, options.text || '');
             }
         }
 
@@ -3165,6 +3163,10 @@ class FTable extends FTableEventEmitter {
                     e.stopPropagation();
                     options.onClick(e);
             });
+        }
+
+        if (options.disabled) {
+            button.disabled = true;
         }
 
         return button;
