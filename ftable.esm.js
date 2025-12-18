@@ -29,7 +29,7 @@ const FTABLE_DEFAULT_MESSAGES = {
     sortingInfoNone: 'No sorting applied',
     resetSorting: 'Reset sorting',
     csvExport: 'CSV',
-    printTable: '🖨️  Print',
+    printTable: '🖨️ Print',
     cloneRecord: 'Clone Record',
     resetTable: 'Reset table',
     resetTableConfirm: 'This will reset all columns, pagesize, sorting to their defaults. Do you want to continue?',
@@ -190,7 +190,7 @@ class FTableDOMHelper {
         'value', 'checked', 'selected', 'disabled', 'readOnly',
         'name', 'id', 'type', 'placeholder', 'min', 'max',
         'step', 'required', 'multiple', 'accept', 'className',
-        'textContent', 'innerHTML'
+        'textContent', 'innerHTML', 'title'
     ]);
 
     static create(tag, options = {}) {
@@ -3113,25 +3113,59 @@ class FTable extends FTableEventEmitter {
     }
 
     addToolbarButton(options) {
-        const button = FTableDOMHelper.create('span', {
+        const button = FTableDOMHelper.create('button', {
             className: `ftable-toolbar-item ${options.className || ''}`,
+            id: options.id || null,
+            title: options.title || null,
+            textContent: options.text || null,
+            type: 'button',  // Prevent accidental form submission
             parent: this.elements.toolbarDiv
         });
+
         if (options.addIconSpan) {
             // just the span, the rest is CSS here
-            const buttonText = FTableDOMHelper.create('span', {
+            const iconSpan = FTableDOMHelper.create('span', {
                 className: `ftable-toolbar-item-icon ${options.className || ''}`,
                 parent: button
             });
+            // If we want icon before text, we need to insert it
+            // Since textContent replaces everything, we need to append text node
+            if (options.text) {
+                // Remove the textContent we set earlier
+                button.textContent = '';
+                button.appendChild(iconSpan);
+                button.append(options.text);
+            }
         }
-        const buttonText = FTableDOMHelper.create('span', {
-            className: `ftable-toolbar-item-text ${options.className || ''}`,
-            textContent: options.text,
-            parent: button
-        });
+
+        // Add icon if provided
+        if (options.icon) {
+            const img = FTableDOMHelper.create('img', {
+                attributes: {
+                    src: options.icon,
+                    alt: '',
+                    width: 16,
+                    height: 16,
+                    style: 'margin-right: 6px; vertical-align: middle;'
+                },
+                parent: button
+            });
+            // If we want icon before text, we need to insert it
+            // Since textContent replaces everything, we need to append text node
+            if (options.text) {
+                // Remove the textContent we set earlier
+                button.textContent = '';
+                button.appendChild(img);
+                button.append(options.text);
+            }
+        }
 
         if (options.onClick) {
-            button.addEventListener('click', options.onClick);
+            button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    options.onClick(e);
+            });
         }
 
         return button;
@@ -3141,49 +3175,14 @@ class FTable extends FTableEventEmitter {
         if (!this.options.toolbar || !this.options.toolbar.items) return;
 
         this.options.toolbar.items.forEach((item, index) => {
-            const button = FTableDOMHelper.create('span', {
-                className: `ftable-toolbar-item ftable-toolbar-item-custom ${item.buttonClass || ''}`,
+            this.addToolbarButton({
+                text: item.text || '',
+                className: `ftable-toolbar-item-custom ${item.buttonClass || ''}`,
                 id: item.buttonId || `ftable-toolbar-item-custom-id-${index}`,
-                parent: this.elements.toolbarDiv
+                title: item.tooltip || '',
+                icon: item.icon || null,
+                onClick: typeof item.click === 'function' ? item.click : null
             });
-
-            // Add title/tooltip if provided
-            if (item.tooltip) {
-                button.setAttribute('title', item.tooltip);
-            }
-
-            // Add icon if provided
-            if (item.icon) {
-                const img = FTableDOMHelper.create('img', {
-                    attributes: {
-                        src: item.icon,
-                        alt: '',
-                        width: 16,
-                        height: 16,
-                        style: 'margin-right: 6px; vertical-align: middle;'
-                    },
-                    parent: button
-                });
-            }
-
-            // Add text
-            if (item.text) {
-                FTableDOMHelper.create('span', {
-                    textContent: item.text,
-                    className: `ftable-toolbar-item-text ftable-toolbar-item-custom-text ${item.buttonTextClass || ''}`,
-                    id: item.buttonTextId || `ftable-toolbar-item-custom-text-id-${index}`,
-                    parent: button
-                });
-            }
-
-            // Attach click handler
-            if (typeof item.click === 'function') {
-                button.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    item.click(e);
-                });
-            }
         });
     }
 

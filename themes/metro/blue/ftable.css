@@ -69,7 +69,7 @@ div.ftable-main-container div.ftable-title div.ftable-toolbar .ftable-toolbar-it
   cursor: pointer;
   font-size: 0.9em;
   padding: 2px;
-  vertical-align: bottom;
+  border: none;
 }
 div.ftable-main-container div.ftable-title div.ftable-toolbar .ftable-toolbar-item span.ftable-toolbar-item-icon {
   display: inline-block;
