@@ -1364,7 +1364,7 @@ class FTableFormBuilder {
             id: `Edit-${fieldName}`,
             className: field.inputClass || null,
             placeholder: field.placeholder || null,
-            value = value
+            value: value
         });
     }
 
