@@ -2662,14 +2662,13 @@ class FTable extends FTableEventEmitter {
     createCustomMultiSelectForSearch(fieldSearchName, fieldName, field, optionsSource, attributes) {
         // Create container
         const container = FTableDOMHelper.create('div', {
-            className: 'ftable-multiselect-container ftable-multiselect-search',
+            className: 'ftable-multiselect-container ftable-multiselect-search ftable-toolbarsearch',
             attributes: { 'data-field-name': attributes['data-field-name'] }
         });
 
         // Create hidden select to maintain compatibility with existing search logic
         const hiddenSelect = FTableDOMHelper.create('select', {
             id: fieldSearchName,
-            className: 'ftable-toolbarsearch',
             multiple: true,
             style: 'display: none;',
             attributes: attributes
