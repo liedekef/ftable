@@ -1521,12 +1521,6 @@ class FTableFormBuilder {
                         hiddenInput.value = Array.from(selectedValues).join(',');
                     });
                 });
-                
-                const countText = FTableDOMHelper.create('span', {
-                    className: 'ftable-multiselect-count',
-                    textContent: `${selectedValues.size} ${this.options.messages.selectedItems || 'selected'}`,
-                    parent: selectedDisplay
-                });
             }
             
             hiddenInput.value = Array.from(selectedValues).join(',');
@@ -1542,8 +1536,14 @@ class FTableFormBuilder {
             options.forEach(option => {
                 const optValue = option.Value !== undefined ? option.Value : 
                     option.value !== undefined ? option.value : option;
+  
+                // Skip if value is empty
+                if (optValue == null || optValue === '') {
+                    return; // This continues to the next iteration
+                }
+
                 const optText = option.DisplayText || option.text || option;
-                
+
                 const optionDiv = FTableDOMHelper.create('div', {
                     className: 'ftable-multiselect-option',
                     parent: dropdown
@@ -2774,12 +2774,6 @@ class FTable extends FTableEventEmitter {
                         updateDisplay();
                     });
                 });
-                
-                const countText = FTableDOMHelper.create('span', {
-                    className: 'ftable-multiselect-count',
-                    textContent: `${selectedValues.size} ${this.options.messages.selectedItems || 'selected'}`,
-                    parent: selectedDisplay
-                });
             }
         };
 
@@ -2802,8 +2796,14 @@ class FTable extends FTableEventEmitter {
             options.forEach(option => {
                 const optValue = option.Value !== undefined ? option.Value : 
                     option.value !== undefined ? option.value : option;
+
+                // Skip if value is empty
+                if (optValue == null || optValue === '') {
+                    return; // This continues to the next iteration
+                }
+
                 const optText = option.DisplayText || option.text || option;
-                
+
                 // Add to hidden select
                 FTableDOMHelper.create('option', {
                     value: optValue,
