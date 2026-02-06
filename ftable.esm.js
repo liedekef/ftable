@@ -1374,10 +1374,10 @@ class FTableFormBuilder {
 
         // extra check for name and multiple
         let name = fieldName;
+        let hasMultiple = false;
+        
         // Apply inputAttributes from field definition
         if (field.inputAttributes) {
-            let hasMultiple = false;
-
             const parsed = this.parseInputAttributes(field.inputAttributes);
             Object.assign(attributes, parsed);
 
@@ -1387,6 +1387,13 @@ class FTableFormBuilder {
                 name = `${fieldName}[]`;
             }
         }
+        
+        // If multiple select, create custom UI
+        if (hasMultiple) {
+            return this.createCustomMultiSelect(fieldName, field, value, attributes, name);
+        }
+        
+        // Standard single select
         attributes.name = name;
 
         const select = FTableDOMHelper.create('select', {
@@ -1401,6 +1408,208 @@ class FTableFormBuilder {
         }
 
         return select;
+    }
+
+    createCustomMultiSelect(fieldName, field, value, attributes, name) {
+        // Create container
+        const container = FTableDOMHelper.create('div', {
+            className: 'ftable-multiselect-container',
+            attributes: { 'data-field-name': fieldName }
+        });
+
+        // Create hidden input to store selected values
+        const hiddenInput = FTableDOMHelper.create('input', {
+            type: 'hidden',
+            name: name,
+            id: `Edit-${fieldName}`,
+            value: Array.isArray(value) ? value.join(',') : value || ''
+        });
+        container.appendChild(hiddenInput);
+
+        // Create display area
+        const display = FTableDOMHelper.create('div', {
+            className: 'ftable-multiselect-display',
+            parent: container
+        });
+
+        const selectedDisplay = FTableDOMHelper.create('div', {
+            className: 'ftable-multiselect-selected',
+            parent: display
+        });
+
+        const placeholderText = field.placeholder || this.options.messages.multiSelectPlaceholder || 'Click to select options...';
+        const placeholder = FTableDOMHelper.create('span', {
+            className: 'ftable-multiselect-placeholder',
+            textContent: placeholderText,
+            parent: selectedDisplay
+        });
+
+        // Create dropdown toggle button
+        const toggleBtn = FTableDOMHelper.create('button', {
+            type: 'button',
+            className: 'ftable-multiselect-toggle',
+            innerHTML: '▼',
+            parent: display
+        });
+
+        // Create options dropdown
+        const dropdown = FTableDOMHelper.create('div', {
+            className: 'ftable-multiselect-dropdown',
+            parent: container,
+            style: 'display: none;'
+        });
+
+        // Store selected values and checkbox references
+        const selectedValues = new Set(
+            Array.isArray(value) ? value : 
+            value ? value.toString().split(',').filter(v => v) : []
+        );
+        const checkboxMap = new Map(); // Map of value -> checkbox element
+
+        // Function to update display
+        const updateDisplay = () => {
+            selectedDisplay.innerHTML = '';
+            
+            if (selectedValues.size === 0) {
+                placeholder.textContent = placeholderText;
+                selectedDisplay.appendChild(placeholder);
+            } else {
+                const selectedArray = Array.from(selectedValues);
+                const optionsMap = new Map();
+                
+                // Build options map
+                if (field.options) {
+                    const options = Array.isArray(field.options) ? field.options : 
+                        Object.entries(field.options).map(([k, v]) => ({Value: k, DisplayText: v}));
+                    
+                    options.forEach(opt => {
+                        const val = opt.Value !== undefined ? opt.Value : 
+                            opt.value !== undefined ? opt.value : opt;
+                        const text = opt.DisplayText || opt.text || opt;
+                        optionsMap.set(val.toString(), text);
+                    });
+                }
+                
+                selectedArray.forEach(val => {
+                    const tag = FTableDOMHelper.create('span', {
+                        className: 'ftable-multiselect-tag',
+                        parent: selectedDisplay
+                    });
+                    
+                    FTableDOMHelper.create('span', {
+                        className: 'ftable-multiselect-tag-text',
+                        textContent: optionsMap.get(val.toString()) || val,
+                        parent: tag
+                    });
+                    
+                    const removeBtn = FTableDOMHelper.create('span', {
+                        className: 'ftable-multiselect-tag-remove',
+                        innerHTML: '×',
+                        parent: tag
+                    });
+                    
+                    removeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        selectedValues.delete(val);
+                        // Update the checkbox state
+                        const checkbox = checkboxMap.get(val.toString());
+                        if (checkbox) {
+                            checkbox.checked = false;
+                        }
+                        updateDisplay();
+                        hiddenInput.value = Array.from(selectedValues).join(',');
+                    });
+                });
+                
+                const countText = FTableDOMHelper.create('span', {
+                    className: 'ftable-multiselect-count',
+                    textContent: `${selectedValues.size} ${this.options.messages.selectedItems || 'selected'}`,
+                    parent: selectedDisplay
+                });
+            }
+            
+            hiddenInput.value = Array.from(selectedValues).join(',');
+        };
+
+        // Populate options
+        const populateOptions = () => {
+            if (!field.options) return;
+            
+            const options = Array.isArray(field.options) ? field.options : 
+                Object.entries(field.options).map(([k, v]) => ({Value: k, DisplayText: v}));
+            
+            options.forEach(option => {
+                const optValue = option.Value !== undefined ? option.Value : 
+                    option.value !== undefined ? option.value : option;
+                const optText = option.DisplayText || option.text || option;
+                
+                const optionDiv = FTableDOMHelper.create('div', {
+                    className: 'ftable-multiselect-option',
+                    parent: dropdown
+                });
+                
+                const checkbox = FTableDOMHelper.create('input', {
+                    type: 'checkbox',
+                    className: 'ftable-multiselect-checkbox',
+                    checked: selectedValues.has(optValue.toString()),
+                    parent: optionDiv
+                });
+                
+                // Store checkbox reference
+                checkboxMap.set(optValue.toString(), checkbox);
+                
+                const label = FTableDOMHelper.create('label', {
+                    className: 'ftable-multiselect-label',
+                    textContent: optText,
+                    parent: optionDiv
+                });
+                
+                // Click anywhere on the option to toggle
+                optionDiv.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    
+                    if (selectedValues.has(optValue.toString())) {
+                        selectedValues.delete(optValue.toString());
+                        checkbox.checked = false;
+                    } else {
+                        selectedValues.add(optValue.toString());
+                        checkbox.checked = true;
+                    }
+                    
+                    updateDisplay();
+                });
+            });
+        };
+
+        // Toggle dropdown
+        const toggleDropdown = (e) => {
+            if (e) e.stopPropagation();
+            const isVisible = dropdown.style.display !== 'none';
+            dropdown.style.display = isVisible ? 'none' : 'block';
+            
+            if (!isVisible) {
+                // Close other dropdowns
+                document.querySelectorAll('.ftable-multiselect-dropdown').forEach(dd => {
+                    if (dd !== dropdown) dd.style.display = 'none';
+                });
+            }
+        };
+
+        display.addEventListener('click', toggleDropdown);
+        toggleBtn.addEventListener('click', toggleDropdown);
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!container.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        // Initialize
+        populateOptions();
+        updateDisplay();
+
+        return container;
     }
 
     createRadioGroup(fieldName, field, value) {
@@ -2308,12 +2517,19 @@ class FTable extends FTableEventEmitter {
                         container.appendChild(input.datalistElement);
                     }
 
-                    if (input.tagName === 'SELECT') {
-                        input.addEventListener('change', (e) => {
+                    // Handle event listeners - check if it's a custom multiselect container
+                    let targetElement = input;
+                    if (input.classList && input.classList.contains('ftable-multiselect-container') && input.hiddenSelect) {
+                        // It's a custom multiselect - attach listener to the hidden select
+                        targetElement = input.hiddenSelect;
+                    }
+
+                    if (targetElement.tagName === 'SELECT') {
+                        targetElement.addEventListener('change', (e) => {
                             this.handleSearchInputChange(e);
                         });
                     } else {
-                        input.addEventListener('input', (e) => {
+                        targetElement.addEventListener('input', (e) => {
                             this.handleSearchInputChange(e);
                         });
                     }
@@ -2378,12 +2594,6 @@ class FTable extends FTableEventEmitter {
         }
         attributes['data-field-name'] = name;
 
-        const select = FTableDOMHelper.create('select', {
-            attributes: attributes,
-            id: fieldSearchName,
-            className: 'ftable-toolbarsearch'
-        });
-
         let optionsSource;
         if (isCheckboxValues && field.values) {
             optionsSource = Object.entries(field.values).map(([value, displayText]) => ({
@@ -2393,6 +2603,24 @@ class FTable extends FTableEventEmitter {
         } else if (field.options) {
             optionsSource = await this.formBuilder.getFieldOptions(fieldName);
         }
+
+        // If multiple, create custom UI
+        if (hasMultiple) {
+            return this.createCustomMultiSelectForSearch(
+                fieldSearchName, 
+                fieldName, 
+                field, 
+                optionsSource, 
+                attributes
+            );
+        }
+
+        // Standard single select
+        const select = FTableDOMHelper.create('select', {
+            attributes: attributes,
+            id: fieldSearchName,
+            className: 'ftable-toolbarsearch'
+        });
 
         // Add empty option only if first option is not already empty
         const hasEmptyFirst = optionsSource?.length > 0 &&
@@ -2428,6 +2656,227 @@ class FTable extends FTableEventEmitter {
         }
 
         return select;
+    }
+
+    createCustomMultiSelectForSearch(fieldSearchName, fieldName, field, optionsSource, attributes) {
+        // Create container
+        const container = FTableDOMHelper.create('div', {
+            className: 'ftable-multiselect-container ftable-multiselect-search',
+            attributes: { 'data-field-name': attributes['data-field-name'] }
+        });
+
+        // Create hidden select to maintain compatibility with existing search logic
+        const hiddenSelect = FTableDOMHelper.create('select', {
+            id: fieldSearchName,
+            className: 'ftable-toolbarsearch',
+            multiple: true,
+            style: 'display: none;',
+            attributes: attributes
+        });
+        container.appendChild(hiddenSelect);
+
+        // Expose hidden select for external access (needed for event listeners and reset)
+        container.hiddenSelect = hiddenSelect;
+
+        // Create display area
+        const display = FTableDOMHelper.create('div', {
+            className: 'ftable-multiselect-display',
+            parent: container
+        });
+
+        const selectedDisplay = FTableDOMHelper.create('div', {
+            className: 'ftable-multiselect-selected',
+            parent: display
+        });
+
+        const placeholderText = field.searchPlaceholder || field.placeholder || this.options.messages.multiSelectPlaceholder || 'Click to select options...';
+        const placeholder = FTableDOMHelper.create('span', {
+            className: 'ftable-multiselect-placeholder',
+            textContent: placeholderText,
+            parent: selectedDisplay
+        });
+
+        // Create dropdown toggle button
+        const toggleBtn = FTableDOMHelper.create('button', {
+            type: 'button',
+            className: 'ftable-multiselect-toggle',
+            innerHTML: '▼',
+            parent: display
+        });
+
+        // Create options dropdown
+        const dropdown = FTableDOMHelper.create('div', {
+            className: 'ftable-multiselect-dropdown',
+            parent: container,
+            style: 'display: none;'
+        });
+
+        // Store selected values and checkbox references
+        const selectedValues = new Set();
+        const checkboxMap = new Map(); // Map of value -> checkbox element
+
+        // Function to update display and hidden select
+        const updateDisplay = () => {
+            selectedDisplay.innerHTML = '';
+            
+            // Update hidden select
+            Array.from(hiddenSelect.options).forEach(opt => {
+                opt.selected = selectedValues.has(opt.value);
+            });
+            
+            // Trigger change event on hidden select for search functionality
+            hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            
+            if (selectedValues.size === 0) {
+                placeholder.textContent = placeholderText;
+                selectedDisplay.appendChild(placeholder);
+            } else {
+                const selectedArray = Array.from(selectedValues);
+                const optionsMap = new Map();
+                
+                // Build options map
+                if (optionsSource && Array.isArray(optionsSource)) {
+                    optionsSource.forEach(opt => {
+                        const val = opt.Value !== undefined ? opt.Value : 
+                            opt.value !== undefined ? opt.value : opt;
+                        const text = opt.DisplayText || opt.text || opt;
+                        optionsMap.set(val.toString(), text);
+                    });
+                }
+                
+                selectedArray.forEach(val => {
+                    const tag = FTableDOMHelper.create('span', {
+                        className: 'ftable-multiselect-tag',
+                        parent: selectedDisplay
+                    });
+                    
+                    FTableDOMHelper.create('span', {
+                        className: 'ftable-multiselect-tag-text',
+                        textContent: optionsMap.get(val.toString()) || val,
+                        parent: tag
+                    });
+                    
+                    const removeBtn = FTableDOMHelper.create('span', {
+                        className: 'ftable-multiselect-tag-remove',
+                        innerHTML: '×',
+                        parent: tag
+                    });
+                    
+                    removeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        selectedValues.delete(val);
+                        // Update the checkbox state
+                        const checkbox = checkboxMap.get(val.toString());
+                        if (checkbox) {
+                            checkbox.checked = false;
+                        }
+                        updateDisplay();
+                    });
+                });
+                
+                const countText = FTableDOMHelper.create('span', {
+                    className: 'ftable-multiselect-count',
+                    textContent: `${selectedValues.size} ${this.options.messages.selectedItems || 'selected'}`,
+                    parent: selectedDisplay
+                });
+            }
+        };
+
+        // Add reset method to container
+        container.resetMultiSelect = () => {
+            selectedValues.clear();
+            checkboxMap.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            updateDisplay();
+        };
+
+        // Populate options in both hidden select and dropdown
+        const populateOptions = () => {
+            if (!optionsSource) return;
+            
+            const options = Array.isArray(optionsSource) ? optionsSource : 
+                Object.entries(optionsSource).map(([k, v]) => ({Value: k, DisplayText: v}));
+            
+            options.forEach(option => {
+                const optValue = option.Value !== undefined ? option.Value : 
+                    option.value !== undefined ? option.value : option;
+                const optText = option.DisplayText || option.text || option;
+                
+                // Add to hidden select
+                FTableDOMHelper.create('option', {
+                    value: optValue,
+                    textContent: optText,
+                    parent: hiddenSelect
+                });
+                
+                // Add to visual dropdown
+                const optionDiv = FTableDOMHelper.create('div', {
+                    className: 'ftable-multiselect-option',
+                    parent: dropdown
+                });
+                
+                const checkbox = FTableDOMHelper.create('input', {
+                    type: 'checkbox',
+                    className: 'ftable-multiselect-checkbox',
+                    parent: optionDiv
+                });
+                
+                // Store checkbox reference
+                checkboxMap.set(optValue.toString(), checkbox);
+                
+                const label = FTableDOMHelper.create('label', {
+                    className: 'ftable-multiselect-label',
+                    textContent: optText,
+                    parent: optionDiv
+                });
+                
+                // Click anywhere on the option to toggle
+                optionDiv.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    
+                    if (selectedValues.has(optValue.toString())) {
+                        selectedValues.delete(optValue.toString());
+                        checkbox.checked = false;
+                    } else {
+                        selectedValues.add(optValue.toString());
+                        checkbox.checked = true;
+                    }
+                    
+                    updateDisplay();
+                });
+            });
+        };
+
+        // Toggle dropdown
+        const toggleDropdown = (e) => {
+            if (e) e.stopPropagation();
+            const isVisible = dropdown.style.display !== 'none';
+            dropdown.style.display = isVisible ? 'none' : 'block';
+            
+            if (!isVisible) {
+                // Close other dropdowns
+                document.querySelectorAll('.ftable-multiselect-dropdown').forEach(dd => {
+                    if (dd !== dropdown) dd.style.display = 'none';
+                });
+            }
+        };
+
+        display.addEventListener('click', toggleDropdown);
+        toggleBtn.addEventListener('click', toggleDropdown);
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!container.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        // Initialize
+        populateOptions();
+        updateDisplay();
+
+        return container;
     }
 
     async createDatalistForSearch(fieldName, field) {
@@ -2517,6 +2966,14 @@ class FTable extends FTableEventEmitter {
                 input.selectedIndex = 0; // Select the first (empty) option
             } else {
                 input.value = '';
+            }
+        });
+
+        // Clear custom multiselect containers
+        const multiSelectContainers = this.elements.table.querySelectorAll('.ftable-multiselect-container');
+        multiSelectContainers.forEach(container => {
+            if (typeof container.resetMultiSelect === 'function') {
+                container.resetMultiSelect();
             }
         });
 

@@ -465,6 +465,154 @@ div.ftable-column-selection-container ul.ftable-column-select-list li input[type
 .ftable-yesno-check-input:checked ~ .ftable-yesno-check-text:before {
   content: attr(data-yes);
 }
+/* Custom Multi-Select Styles */
+.ftable-multiselect-container {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  min-width: 200px;
+}
+.ftable-multiselect-display {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  min-height: 38px;
+  padding: 4px 30px 4px 8px;
+  position: relative;
+}
+.ftable-multiselect-display:hover {
+  border-color: #999;
+}
+.ftable-multiselect-display:focus-within {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+.ftable-multiselect-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+  align-items: center;
+}
+.ftable-multiselect-placeholder {
+  color: #555;
+  font-weight: normal;
+}
+.ftable-multiselect-tag {
+  display: inline-flex;
+  align-items: center;
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 13px;
+  gap: 6px;
+  max-width: 100%;
+}
+.ftable-multiselect-tag-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ftable-multiselect-tag-remove {
+  cursor: pointer;
+  font-weight: bold;
+  color: #1976d2;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+  user-select: none;
+}
+.ftable-multiselect-tag-remove:hover {
+  color: #d32f2f;
+}
+.ftable-multiselect-count {
+  color: #666;
+  font-size: 12px;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.ftable-multiselect-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #666;
+  font-size: 10px;
+  line-height: 1;
+}
+.ftable-multiselect-toggle:hover {
+  color: #333;
+}
+.ftable-multiselect-dropdown {
+  position: relative;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+.ftable-multiselect-option {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  cursor: pointer;
+  user-select: none;
+  gap: 8px;
+}
+.ftable-multiselect-option:hover {
+  background: #f5f5f5;
+}
+.ftable-multiselect-checkbox {
+  cursor: pointer;
+  margin: 0;
+  flex-shrink: 0;
+}
+.ftable-multiselect-label {
+  cursor: pointer;
+  flex: 1;
+  margin: 0;
+}
+/* For search toolbar version */
+.ftable-multiselect-search .ftable-multiselect-display {
+  min-height: 20px;
+}
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ftable-multiselect-dropdown {
+    max-height: 200px;
+  }
+  .ftable-multiselect-tag {
+    font-size: 12px;
+  }
+}
+/* Scrollbar styling for dropdown */
+.ftable-multiselect-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+.ftable-multiselect-dropdown::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+.ftable-multiselect-dropdown::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+.ftable-multiselect-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
 div.ftable-main-container {
   font-family: 'Segoe UI Semilight', 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
   font-weight: 300;
