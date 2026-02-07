@@ -723,9 +723,20 @@
 
     /* Custom Multi-Select Styles */
     .ftable-multiselect-container {
-        position: relative;
-        display: inline-block;
+        position: relative; display: inline-block;
         width: 100%;
+        min-width: 200px;
+    }
+
+    /* Overlay for closing dropdown when clicking outside */
+    .ftable-multiselect-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: transparent;
+        z-index: 9999;
     }
 
     .ftable-multiselect-display {
@@ -744,11 +755,6 @@
         border-color: #999;
     }
 
-    .ftable-multiselect-display:focus-within {
-        border-color: #4CAF50;
-        box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-    }
-
     .ftable-multiselect-selected {
         display: flex;
         flex-wrap: wrap;
@@ -759,7 +765,6 @@
 
     .ftable-multiselect-placeholder {
         color: #555;
-        font-weight: normal;
     }
 
     .ftable-multiselect-tag {
@@ -818,13 +823,14 @@
     }
 
     .ftable-multiselect-dropdown {
-        position: relative;
+        /* Position is set dynamically via JavaScript */
         background: white;
         border: 1px solid #ccc;
         border-radius: 4px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         max-height: 200px;
         overflow-y: auto;
+        z-index: 10000;
     }
 
     .ftable-multiselect-option {
@@ -833,7 +839,7 @@
         padding: 4px 8px;
         cursor: pointer;
         user-select: none;
-        gap: 8px;
+        gap: 4px;
     }
 
     .ftable-multiselect-option:hover {
@@ -854,7 +860,7 @@
 
     /* For search toolbar version */
     .ftable-multiselect-search .ftable-multiselect-display {
-        min-height: 20px;
+        min-height: 22px;
     }
 
     /* Responsive adjustments */

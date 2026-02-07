@@ -1453,12 +1453,9 @@ class FTableFormBuilder {
             parent: display
         });
 
-        // Create options dropdown
-        const dropdown = FTableDOMHelper.create('div', {
-            className: 'ftable-multiselect-dropdown',
-            parent: container,
-            style: 'display: none;'
-        });
+        // Dropdown and overlay will be created on demand and appended to body
+        let dropdown = null;
+        let dropdownOverlay = null;
 
         // Store selected values and checkbox references
         const selectedValues = new Set(
@@ -1526,9 +1523,53 @@ class FTableFormBuilder {
             hiddenInput.value = Array.from(selectedValues).join(',');
         };
 
+        // Function to close dropdown
+        const closeDropdown = () => {
+            if (dropdown) {
+                dropdown.remove();
+                dropdown = null;
+            }
+            if (dropdownOverlay) {
+                dropdownOverlay.remove();
+                dropdownOverlay = null;
+            }
+            if (container._cleanupHandlers) {
+                container._cleanupHandlers();
+                container._cleanupHandlers = null;
+            }
+        };
+
+        // Function to position dropdown
+        const positionDropdown = () => {
+            if (!dropdown) return;
+
+            const rect = display.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+            let left = rect.left + scrollLeft;
+            let top = rect.bottom + scrollTop + 4; // 4px gap
+
+            dropdown.style.position = 'absolute';
+            dropdown.style.left = `${left}px`;
+            dropdown.style.top = `${top}px`;
+            dropdown.style.width = `${rect.width}px`;
+            dropdown.style.minWidth = `${rect.width}px`;
+            dropdown.style.boxSizing = 'border-box';
+            dropdown.style.zIndex = '10000';
+
+            // Adjust horizontal position if needed
+	    const dropdownRect = dropdown.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            if (dropdownRect.right > viewportWidth) {
+                left = Math.max(10, viewportWidth - dropdownRect.width - 10);
+                dropdown.style.left = `${left}px`;
+            }
+        };
+
         // Populate options
         const populateOptions = () => {
-            if (!field.options) return;
+            if (!field.options || !dropdown) return;
             
             const options = Array.isArray(field.options) ? field.options : 
                 Object.entries(field.options).map(([k, v]) => ({Value: k, DisplayText: v}));
@@ -1585,26 +1626,74 @@ class FTableFormBuilder {
         // Toggle dropdown
         const toggleDropdown = (e) => {
             if (e) e.stopPropagation();
-            const isVisible = dropdown.style.display !== 'none';
-            dropdown.style.display = isVisible ? 'none' : 'block';
             
-            if (!isVisible) {
-                // Close other dropdowns
-                document.querySelectorAll('.ftable-multiselect-dropdown').forEach(dd => {
-                    if (dd !== dropdown) dd.style.display = 'none';
+            if (dropdown) {
+                // Dropdown is open, close it
+                closeDropdown();
+            } else {
+                // Close any other open multiselect dropdowns
+                document.querySelectorAll('.ftable-multiselect-dropdown').forEach(dd => dd.remove());
+                document.querySelectorAll('.ftable-multiselect-overlay').forEach(ov => ov.remove());
+
+                // Create overlay
+                dropdownOverlay = FTableDOMHelper.create('div', {
+                    className: 'ftable-multiselect-overlay',
+                    parent: document.body
                 });
+
+                // Create dropdown
+                dropdown = FTableDOMHelper.create('div', {
+                    className: 'ftable-multiselect-dropdown',
+                    parent: document.body
+                });
+
+                // Populate options
+                populateOptions();
+
+                // Position dropdown
+                positionDropdown();
+
+                // Handle clicks outside
+                dropdownOverlay.addEventListener('click', (event) => {
+                    if (event.target === dropdownOverlay) {
+                        closeDropdown();
+                    }
+                });
+
+                // Reposition on scroll/resize
+                const repositionHandler = () => positionDropdown();
+                window.addEventListener('scroll', repositionHandler, true);
+                window.addEventListener('resize', repositionHandler);
+
+                // Store cleanup function
+                container._cleanupHandlers = () => {
+                    window.removeEventListener('scroll', repositionHandler, true);
+                    window.removeEventListener('resize', repositionHandler);
+                };
             }
         };
 
         display.addEventListener('click', toggleDropdown);
         toggleBtn.addEventListener('click', toggleDropdown);
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!container.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
+        // Clean up when container is removed from DOM
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.removedNodes.forEach((node) => {
+                    if (node === container || node.contains && node.contains(container)) {
+                        closeDropdown();
+                        observer.disconnect();
+                    }
+                });
+            });
         });
+        
+        // Start observing once container is in the DOM
+        setTimeout(() => {
+            if (container.parentNode) {
+                observer.observe(container.parentNode, { childList: true, subtree: true });
+            }
+        }, 0);
 
         // Initialize
         populateOptions();
@@ -1932,9 +2021,6 @@ class FTable extends FTableEventEmitter {
         this.updateSortingHeaders();
         this.renderSortingInfo();
 
-        // Add essential CSS if not already present
-        //this.addEssentialCSS();
-
         // now make sure all tables have a % width
         this.initColumnWidths();
     }
@@ -2012,40 +2098,6 @@ class FTable extends FTableEventEmitter {
         });
 
         return result;
-    }
-
-    addEssentialCSS() {
-        // Check if our CSS is already added
-        if (document.querySelector('#ftable-essential-css')) return;
-        
-        const css = `
-            .ftable-row-animation {
-                transition: background-color 0.3s ease;
-            }
-
-            .ftable-row-added {
-                background-color: #d4edda !important;
-            }
-
-            .ftable-row-edited {
-                background-color: #d1ecf1 !important;
-            }
-
-            .ftable-row-deleted {
-                opacity: 0;
-                transform: translateY(-10px);
-                transition: opacity 0.3s ease, transform 0.3s ease;
-            }
-
-            .ftable-toolbarsearch {
-                width: 90%;
-            }
-        `;
-
-        const style = document.createElement('style');
-        style.id = 'ftable-essential-css';
-        style.textContent = css;
-        document.head.appendChild(style);
     }
 
     createPagingUI() {
@@ -2704,12 +2756,9 @@ class FTable extends FTableEventEmitter {
             parent: display
         });
 
-        // Create options dropdown
-        const dropdown = FTableDOMHelper.create('div', {
-            className: 'ftable-multiselect-dropdown',
-            parent: container,
-            style: 'display: none;'
-        });
+        // Dropdown and overlay will be created on demand and appended to body
+        let dropdown = null;
+        let dropdownOverlay = null;
 
         // Store selected values and checkbox references
         const selectedValues = new Set();
@@ -2776,18 +2825,53 @@ class FTable extends FTableEventEmitter {
             }
         };
 
-        // Add reset method to container
-        container.resetMultiSelect = () => {
-            selectedValues.clear();
-            checkboxMap.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-            updateDisplay();
+        // Function to close dropdown
+        const closeDropdown = () => {
+            if (dropdown) {
+                dropdown.remove();
+                dropdown = null;
+            }
+            if (dropdownOverlay) {
+                dropdownOverlay.remove();
+                dropdownOverlay = null;
+            }
+            if (container._cleanupHandlers) {
+                container._cleanupHandlers();
+                container._cleanupHandlers = null;
+            }
+        };
+
+        // Function to position dropdown
+        const positionDropdown = () => {
+            if (!dropdown) return;
+
+            const rect = display.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+            let left = rect.left + scrollLeft;
+            let top = rect.bottom + scrollTop + 4; // 4px gap
+
+            dropdown.style.position = 'absolute';
+            dropdown.style.left = `${left}px`;
+            dropdown.style.top = `${top}px`;
+            dropdown.style.width = `${rect.width}px`;
+            dropdown.style.minWidth = `${rect.width}px`;
+            dropdown.style.boxSizing = 'border-box';
+            dropdown.style.zIndex = '10000';
+
+            // Adjust horizontal position if needed
+	    const dropdownRect = dropdown.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            if (dropdownRect.right > viewportWidth) {
+                left = Math.max(10, viewportWidth - dropdownRect.width - 10);
+                dropdown.style.left = `${left}px`;
+            }
         };
 
         // Populate options in both hidden select and dropdown
         const populateOptions = () => {
-            if (!optionsSource) return;
+            if (!optionsSource || !dropdown) return;
             
             const options = Array.isArray(optionsSource) ? optionsSource : 
                 Object.entries(optionsSource).map(([k, v]) => ({Value: k, DisplayText: v}));
@@ -2803,12 +2887,14 @@ class FTable extends FTableEventEmitter {
 
                 const optText = option.DisplayText || option.text || option;
 
-                // Add to hidden select
-                FTableDOMHelper.create('option', {
-                    value: optValue,
-                    textContent: optText,
-                    parent: hiddenSelect
-                });
+                // Add to hidden select (only once)
+                if (!hiddenSelect.querySelector(`option[value="${optValue}"]`)) {
+                    FTableDOMHelper.create('option', {
+                        value: optValue,
+                        textContent: optText,
+                        parent: hiddenSelect
+                    });
+                }
                 
                 // Add to visual dropdown
                 const optionDiv = FTableDOMHelper.create('div', {
@@ -2821,6 +2907,9 @@ class FTable extends FTableEventEmitter {
                     className: 'ftable-multiselect-checkbox',
                     parent: optionDiv
                 });
+                
+                // Set initial checked state
+                checkbox.checked = selectedValues.has(optValue.toString());
                 
                 // Store checkbox reference
                 checkboxMap.set(optValue.toString(), checkbox);
@@ -2851,29 +2940,86 @@ class FTable extends FTableEventEmitter {
         // Toggle dropdown
         const toggleDropdown = (e) => {
             if (e) e.stopPropagation();
-            const isVisible = dropdown.style.display !== 'none';
-            dropdown.style.display = isVisible ? 'none' : 'block';
             
-            if (!isVisible) {
-                // Close other dropdowns
-                document.querySelectorAll('.ftable-multiselect-dropdown').forEach(dd => {
-                    if (dd !== dropdown) dd.style.display = 'none';
+            if (dropdown) {
+                // Dropdown is open, close it
+                closeDropdown();
+            } else {
+                // Close any other open multiselect dropdowns
+                document.querySelectorAll('.ftable-multiselect-dropdown').forEach(dd => dd.remove());
+                document.querySelectorAll('.ftable-multiselect-overlay').forEach(ov => ov.remove());
+
+                // Create overlay
+                dropdownOverlay = FTableDOMHelper.create('div', {
+                    className: 'ftable-multiselect-overlay',
+                    parent: document.body
                 });
+
+                // Create dropdown
+                dropdown = FTableDOMHelper.create('div', {
+                    className: 'ftable-multiselect-dropdown',
+                    parent: document.body
+                });
+
+                // Populate options
+                populateOptions();
+
+                // Position dropdown
+                positionDropdown();
+
+                // Handle clicks outside
+                dropdownOverlay.addEventListener('click', (event) => {
+                    if (event.target === dropdownOverlay) {
+                        closeDropdown();
+                    }
+                });
+
+                // Reposition on scroll/resize
+                const repositionHandler = () => positionDropdown();
+                window.addEventListener('scroll', repositionHandler, true);
+                window.addEventListener('resize', repositionHandler);
+
+                // Store cleanup function
+                container._cleanupHandlers = () => {
+                    window.removeEventListener('scroll', repositionHandler, true);
+                    window.removeEventListener('resize', repositionHandler);
+                };
             }
         };
 
         display.addEventListener('click', toggleDropdown);
         toggleBtn.addEventListener('click', toggleDropdown);
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!container.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
+        // Add reset method to container
+        container.resetMultiSelect = () => {
+            selectedValues.clear();
+            checkboxMap.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            closeDropdown();
+            updateDisplay();
+        };
+
+        // Clean up when container is removed from DOM
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.removedNodes.forEach((node) => {
+                    if (node === container || node.contains && node.contains(container)) {
+                        closeDropdown();
+                        observer.disconnect();
+                    }
+                });
+            });
         });
+        
+        // Start observing once container is in the DOM
+        setTimeout(() => {
+            if (container.parentNode) {
+                observer.observe(container.parentNode, { childList: true, subtree: true });
+            }
+        }, 0);
 
         // Initialize
-        populateOptions();
         updateDisplay();
 
         return container;
