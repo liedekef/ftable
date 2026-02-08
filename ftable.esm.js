@@ -1703,20 +1703,25 @@ class FTableFormBuilder {
                 });
 
                 // Reposition on scroll/resize
+                const repositionHandler = () => positionDropdown();
                 const scrollHandler = (e) => {
                     if (dropdown && dropdown.contains(e.target)) {
                         return; // Allow scrolling inside dropdown
                     }
                     positionDropdown();
                 };
-                const repositionHandler = () => positionDropdown();
+                const selectedResizeObserver = new ResizeObserver(() => {
+                    positionDropdown();
+                });
                 window.addEventListener('scroll', scrollHandler, true);
                 window.addEventListener('resize', repositionHandler);
+                selectedResizeObserver.observe(selectedDisplay);
 
                 // Store cleanup function
                 container._cleanupHandlers = () => {
                     window.removeEventListener('scroll', scrollHandler, true);
                     window.removeEventListener('resize', repositionHandler);
+                    selectedResizeObserver.disconnect();
                 };
             }
         };
@@ -3072,20 +3077,25 @@ class FTable extends FTableEventEmitter {
                 });
 
                 // Reposition on scroll/resize
+                const repositionHandler = () => positionDropdown();
                 const scrollHandler = (e) => {
                     if (dropdown && dropdown.contains(e.target)) {
                         return; // Allow scrolling inside dropdown
                     }
                     positionDropdown();
                 };
-                const repositionHandler = () => positionDropdown();
+                const selectedResizeObserver = new ResizeObserver(() => {
+                    positionDropdown();
+                });
                 window.addEventListener('scroll', scrollHandler, true);
                 window.addEventListener('resize', repositionHandler);
+                selectedResizeObserver.observe(selectedDisplay);
 
                 // Store cleanup function
                 container._cleanupHandlers = () => {
                     window.removeEventListener('scroll', scrollHandler, true);
                     window.removeEventListener('resize', repositionHandler);
+                    selectedResizeObserver.disconnect();
                 };
             }
         };

@@ -425,7 +425,7 @@ div.ftable-column-selection-container ul.ftable-column-select-list li input[type
   position: relative;
   display: inline-block;
   width: 100%;
-  min-width: 200px;
+  min-width: 100px;
 }
 /* Overlay for closing dropdown when clicking outside */
 .ftable-multiselect-overlay {
@@ -444,7 +444,6 @@ div.ftable-column-selection-container ul.ftable-column-select-list li input[type
   border: 1px solid #ccc;
   border-radius: 4px;
   cursor: pointer;
-  min-height: 38px;
   padding: 4px 30px 4px 8px;
   position: relative;
 }
