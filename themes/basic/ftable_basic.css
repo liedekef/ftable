@@ -520,6 +520,9 @@ div.ftable-column-selection-container ul.ftable-column-select-list li input[type
   overflow-y: auto;
   z-index: 10000;
 }
+.ftable-multiselect-dropdown:focus {
+  outline: none;
+}
 .ftable-multiselect-option {
   display: flex;
   align-items: center;
