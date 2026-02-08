@@ -505,6 +505,7 @@ div.ftable-column-selection-container ul.ftable-column-select-list li input[type
 }
 .ftable-multiselect-placeholder {
   color: #555;
+  font-weight: normal;
 }
 .ftable-multiselect-tag {
   display: inline-flex;
