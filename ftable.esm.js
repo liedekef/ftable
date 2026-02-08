@@ -1429,7 +1429,10 @@ class FTableFormBuilder {
         // Create display area
         const display = FTableDOMHelper.create('div', {
             className: 'ftable-multiselect-display',
-            parent: container
+            parent: container,
+            attributes: {
+                tabindex: '0'  // Makes it focusable and in tab order
+            }
         });
 
         const selectedDisplay = FTableDOMHelper.create('div', {
@@ -1449,7 +1452,10 @@ class FTableFormBuilder {
             type: 'button',
             className: 'ftable-multiselect-toggle',
             innerHTML: '▼',
-            parent: display
+            parent: display,
+            attributes: {
+                tabindex: '-1' // this skips regular focus when tabbing
+            }
         });
 
         // Dropdown and overlay will be created on demand and appended to body
@@ -1524,6 +1530,7 @@ class FTableFormBuilder {
 
         // Function to close dropdown
         const closeDropdown = () => {
+            display.focus(); // Return focus to the trigger
             if (dropdown) {
                 dropdown.remove();
                 dropdown = null;
@@ -1558,7 +1565,7 @@ class FTableFormBuilder {
             dropdown.style.zIndex = '10000';
 
             // Adjust horizontal position if needed
-	    const dropdownRect = dropdown.getBoundingClientRect();
+            const dropdownRect = dropdown.getBoundingClientRect();
             const viewportWidth = window.innerWidth;
             if (dropdownRect.right > viewportWidth) {
                 left = Math.max(10, viewportWidth - dropdownRect.width - 10);
@@ -1643,7 +1650,12 @@ class FTableFormBuilder {
                 // Create dropdown
                 dropdown = FTableDOMHelper.create('div', {
                     className: 'ftable-multiselect-dropdown',
-                    parent: document.body
+                    parent: document.body,
+                    attributes: {
+                        tabindex: '-1',
+                        role: 'listbox',
+                        'aria-multiselectable': 'true'
+                    }
                 });
 
                 // Populate options
@@ -1651,6 +1663,37 @@ class FTableFormBuilder {
 
                 // Position dropdown
                 positionDropdown();
+
+                // dropdown focus
+                dropdown.focus();
+
+                // Add keyboard navigation
+                dropdown.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        closeDropdown();
+                    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        // Navigate between options
+                        const checkboxes = Array.from(dropdown.querySelectorAll('.ftable-multiselect-checkbox'));
+                        const current = document.activeElement;
+                        const currentIndex = checkboxes.indexOf(current);
+
+                        let nextIndex;
+                        if (e.key === 'ArrowDown') {
+                            nextIndex = currentIndex < checkboxes.length - 1 ? currentIndex + 1 : 0;
+                        } else {
+                            nextIndex = currentIndex > 0 ? currentIndex - 1 : checkboxes.length - 1;
+                        }
+
+                        checkboxes[nextIndex].focus();
+                    } else if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        // Toggle the focused checkbox
+                        if (document.activeElement.classList.contains('ftable-multiselect-checkbox')) {
+                            document.activeElement.click();
+                        }
+                    }
+                });
 
                 // Handle clicks outside
                 dropdownOverlay.addEventListener('click', (event) => {
@@ -1660,13 +1703,19 @@ class FTableFormBuilder {
                 });
 
                 // Reposition on scroll/resize
+                const scrollHandler = (e) => {
+                    if (dropdown && dropdown.contains(e.target)) {
+                        return; // Allow scrolling inside dropdown
+                    }
+                    positionDropdown();
+                };
                 const repositionHandler = () => positionDropdown();
-                window.addEventListener('scroll', repositionHandler, true);
+                window.addEventListener('scroll', scrollHandler, true);
                 window.addEventListener('resize', repositionHandler);
 
                 // Store cleanup function
                 container._cleanupHandlers = () => {
-                    window.removeEventListener('scroll', repositionHandler, true);
+                    window.removeEventListener('scroll', scrollHandler, true);
                     window.removeEventListener('resize', repositionHandler);
                 };
             }
@@ -1674,6 +1723,12 @@ class FTableFormBuilder {
 
         display.addEventListener('click', toggleDropdown);
         toggleBtn.addEventListener('click', toggleDropdown);
+        display.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'Enter') {
+                e.preventDefault();
+                toggleDropdown();
+            }
+        });
 
         // Clean up when container is removed from DOM
         const observer = new MutationObserver((mutations) => {
@@ -2732,7 +2787,10 @@ class FTable extends FTableEventEmitter {
         // Create display area
         const display = FTableDOMHelper.create('div', {
             className: 'ftable-multiselect-display',
-            parent: container
+            parent: container,
+            attributes: {
+                tabindex: '0'  // Makes it focusable and in tab order
+            }
         });
 
         const selectedDisplay = FTableDOMHelper.create('div', {
@@ -2752,7 +2810,10 @@ class FTable extends FTableEventEmitter {
             type: 'button',
             className: 'ftable-multiselect-toggle',
             innerHTML: '▼',
-            parent: display
+            parent: display,
+            attributes: {
+                tabindex: '-1' // this skips regular focus when tabbing
+            }
         });
 
         // Dropdown and overlay will be created on demand and appended to body
@@ -2826,6 +2887,7 @@ class FTable extends FTableEventEmitter {
 
         // Function to close dropdown
         const closeDropdown = () => {
+            display.focus(); // Return focus to the trigger
             if (dropdown) {
                 dropdown.remove();
                 dropdown = null;
@@ -2860,7 +2922,7 @@ class FTable extends FTableEventEmitter {
             dropdown.style.zIndex = '10000';
 
             // Adjust horizontal position if needed
-	    const dropdownRect = dropdown.getBoundingClientRect();
+            const dropdownRect = dropdown.getBoundingClientRect();
             const viewportWidth = window.innerWidth;
             if (dropdownRect.right > viewportWidth) {
                 left = Math.max(10, viewportWidth - dropdownRect.width - 10);
@@ -2957,7 +3019,12 @@ class FTable extends FTableEventEmitter {
                 // Create dropdown
                 dropdown = FTableDOMHelper.create('div', {
                     className: 'ftable-multiselect-dropdown',
-                    parent: document.body
+                    parent: document.body,
+                    attributes: {
+                        tabindex: '-1',
+                        role: 'listbox',
+                        'aria-multiselectable': 'true'
+                    }
                 });
 
                 // Populate options
@@ -2965,6 +3032,37 @@ class FTable extends FTableEventEmitter {
 
                 // Position dropdown
                 positionDropdown();
+
+                // dropdown focus
+                dropdown.focus();
+
+                // Add keyboard navigation
+                dropdown.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        closeDropdown();
+                    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        // Navigate between options
+                        const checkboxes = Array.from(dropdown.querySelectorAll('.ftable-multiselect-checkbox'));
+                        const current = document.activeElement;
+                        const currentIndex = checkboxes.indexOf(current);
+
+                        let nextIndex;
+                        if (e.key === 'ArrowDown') {
+                            nextIndex = currentIndex < checkboxes.length - 1 ? currentIndex + 1 : 0;
+                        } else {
+                            nextIndex = currentIndex > 0 ? currentIndex - 1 : checkboxes.length - 1;
+                        }
+
+                        checkboxes[nextIndex].focus();
+                    } else if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        // Toggle the focused checkbox
+                        if (document.activeElement.classList.contains('ftable-multiselect-checkbox')) {
+                            document.activeElement.click();
+                        }
+                    }
+                });
 
                 // Handle clicks outside
                 dropdownOverlay.addEventListener('click', (event) => {
@@ -2974,13 +3072,19 @@ class FTable extends FTableEventEmitter {
                 });
 
                 // Reposition on scroll/resize
+                const scrollHandler = (e) => {
+                    if (dropdown && dropdown.contains(e.target)) {
+                        return; // Allow scrolling inside dropdown
+                    }
+                    positionDropdown();
+                };
                 const repositionHandler = () => positionDropdown();
-                window.addEventListener('scroll', repositionHandler, true);
+                window.addEventListener('scroll', scrollHandler, true);
                 window.addEventListener('resize', repositionHandler);
 
                 // Store cleanup function
                 container._cleanupHandlers = () => {
-                    window.removeEventListener('scroll', repositionHandler, true);
+                    window.removeEventListener('scroll', scrollHandler, true);
                     window.removeEventListener('resize', repositionHandler);
                 };
             }
@@ -2988,6 +3092,12 @@ class FTable extends FTableEventEmitter {
 
         display.addEventListener('click', toggleDropdown);
         toggleBtn.addEventListener('click', toggleDropdown);
+        display.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'Enter') {
+                e.preventDefault();
+                toggleDropdown();
+            }
+        });
 
         // Add reset method to container
         container.resetMultiSelect = () => {
