@@ -320,15 +320,13 @@ class FTableHttpClient {
             }
 
             if (Array.isArray(value)) {
-                // Clean key: remove trailing [] if present
-                const cleanKey = key.replace(/\[\]$/, '');
-                const paramKey = cleanKey + '[]'; // Always use [] suffix once
+                const keyName = key.endsWith('[]') ? key : key + '[]';
 
                 // Append each item in the array with the same key
                 // This generates query strings like `key=val1&key=val2&key=val3`
                 value.forEach(item => {
                     if (item !== null && item !== undefined) { // Ensure array items are also not null/undefined
-                        fullUrl.searchParams.append(paramKey, item);
+                        fullUrl.searchParams.append(keyName, item);
                     }
                 });
             } else {
@@ -354,15 +352,13 @@ class FTableHttpClient {
                 return; // Skip null or undefined values
             }
             if (Array.isArray(value)) {
-                // Clean key: remove trailing [] if present
-                const cleanKey = key.replace(/\[\]$/, '');
-                const paramKey = cleanKey + '[]'; // Always use [] suffix once
+                const keyName = key.endsWith('[]') ? key : key + '[]';
 
                 // Append each item in the array with the same key
                 // This generates query strings like `key=val1&key=val2&key=val3`
                 value.forEach(item => {
                     if (item !== null && item !== undefined) { // Ensure array items are also not null/undefined
-                        formData.append(paramKey, item);
+                        formData.append(keyName, item);
                     }
                 });
             } else {
@@ -1416,14 +1412,18 @@ class FTableFormBuilder {
             attributes: { 'data-field-name': fieldName }
         });
 
-        // Create hidden input to store selected values
-        const hiddenInput = FTableDOMHelper.create('input', {
+        // Create hidden select to store selected values
+        const hiddenSelect = FTableDOMHelper.create('select', {
             type: 'hidden',
             name: name,
             id: `Edit-${fieldName}`,
-            value: Array.isArray(value) ? value.join(',') : value || ''
+            multiple: true,
+            style: 'display: none;'
         });
-        container.appendChild(hiddenInput);
+        container.appendChild(hiddenSelect);
+
+        // Store reference to hidden select for easy access
+        container.hiddenSelect = hiddenSelect;
 
         // Create display area
         const display = FTableDOMHelper.create('div', {
@@ -1468,48 +1468,62 @@ class FTableFormBuilder {
         );
         const checkboxMap = new Map(); // Map of value -> checkbox element
 
-        // Function to update display
+        // Function to update display and hidden select
         const updateDisplay = () => {
             selectedDisplay.innerHTML = '';
-            
+
+            // Clear and repopulate hidden select
+            hiddenSelect.innerHTML = '';
+
             if (selectedValues.size === 0) {
                 placeholder.textContent = placeholderText;
                 selectedDisplay.appendChild(placeholder);
             } else {
                 const selectedArray = Array.from(selectedValues);
                 const optionsMap = new Map();
-                
-                // Build options map
+
+                // Build options map from field options
                 if (field.options) {
                     const options = Array.isArray(field.options) ? field.options : 
                         Object.entries(field.options).map(([k, v]) => ({Value: k, DisplayText: v}));
-                    
+
                     options.forEach(opt => {
                         const val = opt.Value !== undefined ? opt.Value : 
                             opt.value !== undefined ? opt.value : opt;
                         const text = opt.DisplayText || opt.text || opt;
                         optionsMap.set(val.toString(), text);
+
+                        // Add option to hidden select if it's selected
+                        if (selectedValues.has(val.toString())) {
+                            FTableDOMHelper.create('option', {
+                                value: val.toString(),
+                                textContent: text,
+                                selected: true,
+                                parent: hiddenSelect
+                            });
+                        }
                     });
                 }
-                
+
+                // Display selected tags
                 selectedArray.forEach(val => {
                     const tag = FTableDOMHelper.create('span', {
                         className: 'ftable-multiselect-tag',
                         parent: selectedDisplay
                     });
-                    
+
                     FTableDOMHelper.create('span', {
                         className: 'ftable-multiselect-tag-text',
                         textContent: optionsMap.get(val.toString()) || val,
                         parent: tag
                     });
-                    
+
                     const removeBtn = FTableDOMHelper.create('span', {
                         className: 'ftable-multiselect-tag-remove',
                         innerHTML: '×',
                         parent: tag
                     });
-                    
+
                     removeBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         selectedValues.delete(val);
@@ -1519,12 +1533,11 @@ class FTableFormBuilder {
                             checkbox.checked = false;
                         }
                         updateDisplay();
-                        hiddenInput.value = Array.from(selectedValues).join(',');
+                        // Trigger change event on hidden select for form validation
+                        hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
                     });
                 });
             }
-            
-            hiddenInput.value = Array.from(selectedValues).join(',');
         };
 
         // Function to close dropdown
@@ -1575,14 +1588,14 @@ class FTableFormBuilder {
         // Populate options
         const populateOptions = () => {
             if (!field.options || !dropdown) return;
-            
+
             const options = Array.isArray(field.options) ? field.options : 
                 Object.entries(field.options).map(([k, v]) => ({Value: k, DisplayText: v}));
-            
+
             options.forEach(option => {
                 const optValue = option.Value !== undefined ? option.Value : 
                     option.value !== undefined ? option.value : option;
-  
+
                 // Skip if value is empty
                 if (optValue == null || optValue === '') {
                     return; // This continues to the next iteration
@@ -1594,27 +1607,27 @@ class FTableFormBuilder {
                     className: 'ftable-multiselect-option',
                     parent: dropdown
                 });
-                
+
                 const checkbox = FTableDOMHelper.create('input', {
                     type: 'checkbox',
                     className: 'ftable-multiselect-checkbox',
                     checked: selectedValues.has(optValue.toString()),
                     parent: optionDiv
                 });
-                
+
                 // Store checkbox reference
                 checkboxMap.set(optValue.toString(), checkbox);
-                
+
                 const label = FTableDOMHelper.create('label', {
                     className: 'ftable-multiselect-label',
                     textContent: optText,
                     parent: optionDiv
                 });
-                
+
                 // Click anywhere on the option to toggle
                 optionDiv.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    
+
                     if (selectedValues.has(optValue.toString())) {
                         selectedValues.delete(optValue.toString());
                         checkbox.checked = false;
@@ -1622,8 +1635,10 @@ class FTableFormBuilder {
                         selectedValues.add(optValue.toString());
                         checkbox.checked = true;
                     }
-                    
+
                     updateDisplay();
+                    // Trigger change event on hidden select for form validation
+                    hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
                 });
             });
         };
@@ -1631,7 +1646,7 @@ class FTableFormBuilder {
         // Toggle dropdown
         const toggleDropdown = (e) => {
             if (e) e.stopPropagation();
-            
+
             if (dropdown) {
                 // Dropdown is open, close it
                 closeDropdown();
@@ -1745,7 +1760,7 @@ class FTableFormBuilder {
                 });
             });
         });
-        
+
         // Start observing once container is in the DOM
         setTimeout(() => {
             if (container.parentNode) {
@@ -1754,7 +1769,6 @@ class FTableFormBuilder {
         }, 0);
 
         // Initialize
-        populateOptions();
         updateDisplay();
 
         return container;
@@ -3991,9 +4005,18 @@ class FTable extends FTableEventEmitter {
              const searchFields = [];
 
              Object.entries(this.state.searchQueries).forEach(([fieldName, query]) => {
-                 if (query !== '') { // Double check it's not empty
-                     queries.push(query);
-                     searchFields.push(fieldName);
+                 if (Array.isArray(query)) {
+                     query.forEach(value => {
+                         if (value !== '' && value != null) {
+                             queries.push(value);
+                             searchFields.push(fieldName);
+                         }
+                     });
+                 } else {
+                     if (query !== '') {
+                         queries.push(query);
+                         searchFields.push(fieldName);
+                     }
                  }
              });
 

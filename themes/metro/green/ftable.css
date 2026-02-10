@@ -588,10 +588,6 @@ div.ftable-column-selection-container ul.ftable-column-select-list li input[type
   flex: 1;
   margin: 0;
 }
-/* For search toolbar version */
-.ftable-multiselect-search .ftable-multiselect-display {
-  min-height: 22px;
-}
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .ftable-multiselect-dropdown {
