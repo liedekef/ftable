@@ -1572,7 +1572,7 @@ class FTableFormBuilder {
             dropdown.style.left = `${left}px`;
             dropdown.style.top = `${top}px`;
             dropdown.style.width = `${rect.width}px`;
-            dropdown.style.minWidth = `${rect.width}px`;
+            dropdown.style.minWidth = 'fit-content';
             dropdown.style.boxSizing = 'border-box';
             dropdown.style.zIndex = '10000';
 
@@ -2935,7 +2935,7 @@ class FTable extends FTableEventEmitter {
             dropdown.style.left = `${left}px`;
             dropdown.style.top = `${top}px`;
             dropdown.style.width = `${rect.width}px`;
-            dropdown.style.minWidth = `${rect.width}px`;
+            dropdown.style.minWidth = 'fit-content';
             dropdown.style.boxSizing = 'border-box';
             dropdown.style.zIndex = '10000';
 
