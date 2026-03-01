@@ -3168,9 +3168,10 @@ class FTable extends FTableEventEmitter {
         
         const settings = {};
         this.columnList.forEach(fieldName => {
+            const field = this.options.fields[fieldName];
+            if (field.action) return; // Action columns have no persistent state
             const th = this.elements.table.querySelector(`[data-field-name="${fieldName}"]`);
             if (th) {
-                const field = this.options.fields[fieldName];
                 settings[fieldName] = {
                     width: th.style.width || field.width || 'auto',
                     visibility: field.visibility || 'visible'
@@ -3202,7 +3203,7 @@ class FTable extends FTableEventEmitter {
             const settings = JSON.parse(settingsJson);
             Object.entries(settings).forEach(([fieldName, config]) => {
                 const field = this.options.fields[fieldName];
-                if (field) {
+                if (field && !field.action) {
                     if (config.width) field.width = config.width;
                     if (config.visibility) field.visibility = config.visibility;
                 }
