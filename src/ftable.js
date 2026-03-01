@@ -1412,9 +1412,7 @@ class FTableFormBuilder {
                 : [];
 
         // Support data-livesearch attribute on the virtual select as well as field.livesearch
-        const livesearch = field.livesearch
-            ?? (attributes['data-livesearch'] === 'true' || attributes['data-livesearch'] === true)
-            ?? false;
+        const livesearch = field.livesearch ?? false;
 
         return this._buildCustomMultiSelect({
             containerId:    fieldName,
@@ -2186,7 +2184,7 @@ class FTable extends FTableEventEmitter {
     initColumnWidths() {
         const visibleFields = this.columnList.filter(fieldName => {
             const field = this.options.fields[fieldName];
-            return field.visibility !== 'hidden' && field.visibility !== 'separator';
+            return !field.action && field.visibility !== 'hidden' && field.visibility !== 'separator';
         });
 
         const count = visibleFields.length;
@@ -2205,7 +2203,7 @@ class FTable extends FTableEventEmitter {
                 th: this.elements.table.querySelector(`[data-field-name="${fieldName}"]`),
                 field: this.options.fields[fieldName]
             }))
-            .filter(item => item.th && item.field.visibility !== 'hidden' && item.field.visibility !== 'separator');
+            .filter(item => item.th && !item.field.action && item.field.visibility !== 'hidden' && item.field.visibility !== 'separator');
 
         if (visibleHeaders.length === 0) return;
 
@@ -2340,8 +2338,17 @@ class FTable extends FTableEventEmitter {
         this.fieldList.forEach(fieldName => {
             const field = this.options.fields[fieldName];
             const isKeyField = field.key === true;
+            const isActionField = !!field.action; // action: 'select' | 'update' | 'clone' | 'delete'
 
-            if (isKeyField) {
+            if (isActionField) {
+                // Action columns are always listed but never part of forms or sorting
+                field.list = true;
+                field.create = false;
+                field.edit = false;
+                field.sorting = false;
+                field.searchable = false;
+                field.visibility = field.visibility ?? 'visible';
+            } else if (isKeyField) {
                 if (field.create === undefined || !field.create) {
                     field.create = true;
                     field.type = 'hidden';
@@ -2366,6 +2373,13 @@ class FTable extends FTableEventEmitter {
             return field.list !== false;
         });
 
+        // Track which actions are user-placed (via action columns in fields)
+        this._userPlacedActions = new Set(
+            this.fieldList
+                .filter(name => this.options.fields[name].action)
+                .map(name => this.options.fields[name].action)
+        );
+
         // Find key field
         this.keyField = this.fieldList.find(name => this.options.fields[name].key === true);
         if (!this.keyField) {
@@ -2376,6 +2390,7 @@ class FTable extends FTableEventEmitter {
     async resolveAsyncFieldOptions() {
         const promises = this.columnList.map(async (fieldName) => {
             const field = this.options.fields[fieldName];
+            if (field.action) return; // Skip action columns
             const originalOptions = this.formBuilder.originalFieldOptions.get(fieldName);
 
             if (this.formBuilder.shouldResolveOptions(originalOptions)) {
@@ -2401,7 +2416,7 @@ class FTable extends FTableEventEmitter {
         for (const row of rows) {
             for (const fieldName of this.columnList) {
                 const field = this.options.fields[fieldName];
-                if (!field.options) continue;
+                if (field.action || !field.options) continue;
 
                 const cell = row.querySelector(`td[data-field-name="${fieldName}"]`);
                 if (!cell) continue;
@@ -2472,8 +2487,8 @@ class FTable extends FTableEventEmitter {
             parent: thead
         });
 
-        // Add selecting column if enabled
-        if (this.options.selecting && this.options.selectingCheckboxes) {
+        // Add selecting column if enabled (only if not user-placed)
+        if (this.options.selecting && this.options.selectingCheckboxes && !this._userPlacedActions.has('select')) {
             const selectHeader = FTableDOMHelper.create('th', {
                 className: `ftable-command-column-header ftable-column-header-select`,
                 parent: headerRow
@@ -2491,9 +2506,41 @@ class FTable extends FTableEventEmitter {
             }
         }
 
-        // Add data columns
+        // Add data columns (including any user-placed action columns)
         this.columnList.forEach(fieldName => {
             const field = this.options.fields[fieldName];
+
+            // If this column is a user-placed action column, render an action header
+            if (field.action) {
+                const actionClassMap = {
+                    select: 'ftable-column-header-select',
+                    update: 'ftable-column-header-edit',
+                    clone:  'ftable-column-header-clone',
+                    delete: 'ftable-column-header-delete',
+                };
+                const th = FTableDOMHelper.create('th', {
+                    className: `ftable-command-column-header ${actionClassMap[field.action] || ''}`,
+                    parent: headerRow
+                });
+                if (field.title) {
+                    th.textContent = field.title;
+                }
+                // For select action with multiselect, add the select-all checkbox
+                if (field.action === 'select' && this.options.selecting && this.options.selectingCheckboxes && this.options.multiselect) {
+                    const selectAllCheckbox = FTableDOMHelper.create('input', {
+                        attributes: { type: 'checkbox' },
+                        parent: th
+                    });
+                    selectAllCheckbox.addEventListener('change', () => {
+                        this.toggleSelectAll(selectAllCheckbox.checked);
+                    });
+                }
+                if (field.width) {
+                    th.style.width = field.width;
+                }
+                return;
+            }
+
             const th = FTableDOMHelper.create('th', {
                 className: `ftable-column-header ${field.listClass || ''} ${field.listClassHeader || ''}`,
                 attributes: { 'data-field-name': fieldName },
@@ -2542,22 +2589,22 @@ class FTable extends FTableEventEmitter {
             }
         });
 
-        // Add action columns
-        if (this.options.actions.updateAction) {
+        // Add default action columns only if not user-placed
+        if (this.options.actions.updateAction && !this._userPlacedActions.has('update')) {
             FTableDOMHelper.create('th', {
                 className: 'ftable-command-column-header ftable-column-header-edit',
                 parent: headerRow
             });
         }
 
-        if (this.options.actions.cloneAction) {
+        if (this.options.actions.cloneAction && !this._userPlacedActions.has('clone')) {
             FTableDOMHelper.create('th', {
                 className: 'ftable-command-column-header ftable-column-header-clone',
                 parent: headerRow
             });
         }
 
-        if (this.options.actions.deleteAction) {
+        if (this.options.actions.deleteAction && !this._userPlacedActions.has('delete')) {
             FTableDOMHelper.create('th', {
                 className: 'ftable-command-column-header ftable-column-header-delete',
                 parent: headerRow
@@ -2578,17 +2625,27 @@ class FTable extends FTableEventEmitter {
             parent: theadParent
         });
 
-        // Add empty cell for selecting column if enabled
-        if (this.options.selecting && this.options.selectingCheckboxes) {
+        // Add empty cell for selecting column if enabled (only if not user-placed)
+        if (this.options.selecting && this.options.selectingCheckboxes && !this._userPlacedActions.has('select')) {
             FTableDOMHelper.create('th', {
                 className: 'ftable-toolbarsearch-column-header',
                 parent: searchRow
             });
         }
 
-        // Add search input cells for data columns
+        // Add search input cells for data columns (including user-placed action columns)
         for (const fieldName of this.columnList) {
             const field = this.options.fields[fieldName];
+
+            // Action columns get an empty search cell
+            if (field.action) {
+                FTableDOMHelper.create('th', {
+                    className: 'ftable-toolbarsearch-column-header ftable-command-column-header',
+                    parent: searchRow
+                });
+                continue;
+            }
+
             const isSearchable = field.searchable !== false;
 
             const th = FTableDOMHelper.create('th', {
@@ -2760,9 +2817,9 @@ class FTable extends FTableEventEmitter {
                 parent: searchRow
             });
 
-            const actionCount = (this.options.actions.updateAction ? 1 : 0) + 
-                (this.options.actions.deleteAction ? 1 : 0) +
-                (this.options.actions.cloneAction ? 1 : 0);
+            const actionCount = (this.options.actions.updateAction && !this._userPlacedActions.has('update') ? 1 : 0) + 
+                (this.options.actions.deleteAction && !this._userPlacedActions.has('delete') ? 1 : 0) +
+                (this.options.actions.cloneAction && !this._userPlacedActions.has('clone') ? 1 : 0);
 
             if (actionCount > 0) {
                 resetTh.colSpan = actionCount;
@@ -2870,9 +2927,7 @@ class FTable extends FTableEventEmitter {
     }
 
     createCustomMultiSelectForSearch(fieldSearchName, fieldName, field, optionsSource, attributes) {
-        const livesearch = field.livesearch
-            ?? (attributes['data-livesearch'] === 'true' || attributes['data-livesearch'] === true)
-            ?? false;
+        const livesearch = field.livesearch ?? false;
 
         return this.formBuilder._buildCustomMultiSelect({
             hiddenSelectId:            fieldSearchName,
@@ -3449,6 +3504,7 @@ class FTable extends FTableEventEmitter {
 
         this.columnList.forEach(fieldName => {
             const field = this.options.fields[fieldName];
+            if (field.action) return; // Action columns don't appear in column picker
             const isVisible = field.visibility !== 'hidden';
             const isFixed = field.visibility === 'fixed';
             const isSeparator = field.visibility === 'separator';
@@ -3861,26 +3917,45 @@ class FTable extends FTableEventEmitter {
         // Store record data
         row.recordData = record;
 
-        // Add selecting checkbox if enabled
-        if (this.options.selecting && this.options.selectingCheckboxes) {
+        // Add selecting checkbox if enabled (only if not user-placed)
+        if (this.options.selecting && this.options.selectingCheckboxes && !this._userPlacedActions.has('select')) {
             this.addSelectingCell(row);
         }
 
-        // Add data cells
+        // Add data cells (including user-placed action columns)
         this.columnList.forEach(fieldName => {
-            this.addDataCell(row, record, fieldName);
+            const field = this.options.fields[fieldName];
+            if (field.action) {
+                // Render inline action cell
+                switch (field.action) {
+                    case 'select':
+                        this.addSelectingCell(row);
+                        break;
+                    case 'update':
+                        this.addEditCell(row);
+                        break;
+                    case 'clone':
+                        this.addCloneCell(row);
+                        break;
+                    case 'delete':
+                        this.addDeleteCell(row);
+                        break;
+                }
+            } else {
+                this.addDataCell(row, record, fieldName);
+            }
         });
 
-        // Add action cells
-        if (this.options.actions.updateAction) {
+        // Add default action cells only if not user-placed
+        if (this.options.actions.updateAction && !this._userPlacedActions.has('update')) {
             this.addEditCell(row);
         }
 
-        if (this.options.actions.cloneAction) {
+        if (this.options.actions.cloneAction && !this._userPlacedActions.has('clone')) {
             this.addCloneCell(row);
         }
 
-        if (this.options.actions.deleteAction) {
+        if (this.options.actions.deleteAction && !this._userPlacedActions.has('delete')) {
             this.addDeleteCell(row);
         }
 
