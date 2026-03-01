@@ -3742,9 +3742,14 @@ class FTable extends FTableEventEmitter {
         }
     }
 
-    async load(queryParams = {}) {
+    async load(queryParams = {}, options = {}) {
         if (this.state.isLoading) return;
-        
+
+        // Allow callers to explicitly reset to page 1 (e.g. after changing listQueryParams)
+        if (options.fromPage1) {
+            this.state.currentPage = 1;
+        }
+
         this.state.isLoading = true;
         this.showLoadingIndicator();
 
@@ -3881,7 +3886,15 @@ class FTable extends FTableEventEmitter {
 
         this.state.records = data.Records || [];
         this.state.totalRecordCount = data.TotalRecordCount || this.state.records.length;
-        
+
+        // If the current page is out of range but records exist, reset to page 1 and reload.
+        // This can happen when listQueryParams changes while the user is on a later page.
+        if (this.options.paging && this.state.records.length === 0 && this.state.totalRecordCount > 0) {
+            this.state.currentPage = 1;
+            this.load();
+            return;
+        }
+
         this.renderTableData();
         this.updatePagingInfo();
     }
