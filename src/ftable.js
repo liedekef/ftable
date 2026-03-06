@@ -584,7 +584,9 @@ class FtableModal {
         // Clear old content
         body.innerHTML = '';
         if (typeof content === 'string') {
-            body.innerHTML = content;
+            body.innerHTML = /<(div|ul|ol|table|p|h[1-6]|blockquote)/i.test(content)
+                ? content
+                : `<p>${content}</p>`;
         } else {
             body.appendChild(content);
         }
@@ -3752,7 +3754,6 @@ class FTable extends FTableEventEmitter {
         this.state.isLoading = true;
         this.showLoadingIndicator();
 
-        
         try {
             const params = {
                 ...queryParams,
@@ -4921,7 +4922,7 @@ class FTable extends FTableEventEmitter {
 
     showError(message) {
         if (this.modals.error) {
-            this.modals.error.setContent(`<p>${message}</p>`);
+            this.modals.error.setContent(message);
             this.modals.error.show();
         } else {
             alert(message); // Fallback
@@ -4930,7 +4931,7 @@ class FTable extends FTableEventEmitter {
 
     showInfo(message) {
         if (this.modals.info) {
-            this.modals.info.setContent(`<p>${message}</p>`);
+            this.modals.info.setContent(message);
             this.modals.info.show();
         } else {
             alert(message); // Fallback
