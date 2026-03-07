@@ -16,6 +16,7 @@
     deleteText: 'Delete',
     deleting: 'Deleting',
     error: 'An error has occured',
+    warning: 'Warning',
     close: 'Close',
     cannotLoadOptionsFor: 'Cannot load options for field {0}!',
     pagingInfo: 'Showing {0}-{1} of {2}',
@@ -3278,6 +3279,7 @@ class FTable extends FTableEventEmitter {
         }
 
         this.createErrorModal();
+        this.createWarningModal();
         this.createInfoModal();
         this.createLoadingModal();
 
@@ -3377,6 +3379,22 @@ class FTable extends FTableEventEmitter {
                     text: this.options.messages.close,
                     className: 'ftable-dialog-closebutton',
                     onClick: () => this.modals.error.close()
+                }
+            ]
+        });
+    }
+
+    createWarningModal() {
+        this.modals.warning = new FtableModal({
+            parent: this.elements.mainContainer,
+            title: this.options.messages.warning,
+            className: 'ftable-warning-modal',
+            closeOnOverlayClick: this.options.closeOnOverlayClick,
+            buttons: [
+                {
+                    text: this.options.messages.close,
+                    className: 'ftable-dialog-closebutton',
+                    onClick: () => this.modals.warning.close()
                 }
             ]
         });
@@ -4926,6 +4944,15 @@ class FTable extends FTableEventEmitter {
         if (this.modals.error) {
             this.modals.error.setContent(message);
             this.modals.error.show();
+        } else {
+            alert(message); // Fallback
+        }
+    }
+
+    showWarning(message) {
+        if (this.modals.warning) {
+            this.modals.warning.setContent(message);
+            this.modals.warning.show();
         } else {
             alert(message); // Fallback
         }
