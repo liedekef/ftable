@@ -629,15 +629,27 @@ class FTableFormBuilder {
             this.resolvedFieldOptions.set(fieldName, {});
         });
         Object.entries(this.options.fields).forEach(([fieldName, field]) => {
-            this.originalFieldOptions.set(fieldName, field.options);
+            this.originalFieldOptions.set(fieldName, {
+                options: field.options,
+                searchOptions: field.searchOptions
+            });
         });
     }
 
     // Get options for specific context
     async getFieldOptions(fieldName, context = 'table', params = {}) {
         const field = this.options.fields[fieldName];
-        const originalOptions = this.originalFieldOptions.get(fieldName);
-        
+        const stored = this.originalFieldOptions.get(fieldName);
+
+        // Determine which options source to use for this context
+        let originalOptions;
+        if (context === 'search') {
+            // Prefer searchOptions; fall back to regular options
+            originalOptions = stored?.searchOptions ?? stored?.options;
+        } else {
+            originalOptions = stored?.options;
+        }
+
         // If no options or already resolved for this context with same params, return cached
         if (!originalOptions) {
             return null;
@@ -2394,7 +2406,7 @@ class FTable extends FTableEventEmitter {
         const promises = this.columnList.map(async (fieldName) => {
             const field = this.options.fields[fieldName];
             if (field.action) return; // Skip action columns
-            const originalOptions = this.formBuilder.originalFieldOptions.get(fieldName);
+            const originalOptions = this.formBuilder.originalFieldOptions.get(fieldName)?.options;
 
             if (this.formBuilder.shouldResolveOptions(originalOptions)) {
                 try {
@@ -2871,8 +2883,8 @@ class FTable extends FTableEventEmitter {
                 Value: value,
                 DisplayText: displayText
             }));
-        } else if (field.options) {
-            optionsSource = await this.formBuilder.getFieldOptions(fieldName);
+        } else if (field.options || field.searchOptions) {
+            optionsSource = await this.formBuilder.getFieldOptions(fieldName, 'search');
         }
 
         // If multiple, create custom UI
@@ -2975,14 +2987,7 @@ class FTable extends FTableEventEmitter {
         input.datalistElement = datalist;
 
         // Load options for the datalist
-        let optionsSource;
-
-        // Use search-specific options if available
-        if (field.searchOptions) {
-            optionsSource = field.searchOptions;
-        } else if (field.options) {
-            optionsSource = await this.formBuilder.getFieldOptions(fieldName, 'table');
-        }
+        const optionsSource = await this.formBuilder.getFieldOptions(fieldName, 'search');
 
         // Populate datalist with options
         if (optionsSource) {
