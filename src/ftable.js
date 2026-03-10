@@ -680,39 +680,6 @@ class FTableFormBuilder {
         }
     }
 
-    /**
-     * Clear resolved options for specific field or all fields
-     * @param {string|null} fieldName - Field name to clear, or null for all fields
-     * @param {string|null} context - Context to clear ('table', 'create', 'edit'), or null for all contexts
-     */
-    clearResolvedOptions(fieldName = null, context = null) {
-        if (fieldName) {
-            // Clear specific field
-            if (this.resolvedFieldOptions.has(fieldName)) {
-                if (context) {
-                    // Clear specific context for specific field
-                    this.resolvedFieldOptions.get(fieldName)[context] = null;
-                } else {
-                    // Clear all contexts for specific field
-                    this.resolvedFieldOptions.set(fieldName, { table: null, create: null, edit: null });
-                }
-            }
-        } else {
-            // Clear all fields
-            if (context) {
-                // Clear specific context for all fields
-                this.resolvedFieldOptions.forEach((value, key) => {
-                    this.resolvedFieldOptions.get(key)[context] = null;
-                });
-            } else {
-                // Clear everything
-                this.resolvedFieldOptions.forEach((value, key) => {
-                    this.resolvedFieldOptions.set(key, { table: null, create: null, edit: null });
-                });
-            }
-        }
-    }
-
     // Helper method to determine caching behavior
     shouldForceRefreshForContext(field, context, params) {
         // Rename to reflect what it actually does now
