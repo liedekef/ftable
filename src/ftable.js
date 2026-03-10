@@ -625,7 +625,7 @@ class FTableFormBuilder {
 
     // Get options for a field, respecting context ('search' prefers searchOptions over options).
     // URL-level caching and concurrent-request deduplication is handled by FTableOptionsCache
-    // inside resolveOptions — no second cache layer needed here.
+    // inside resolveOptions
     async getFieldOptions(fieldName, context = 'table', params = {}) {
         const field = this.options.fields[fieldName];
 
@@ -2091,13 +2091,13 @@ class FTable extends FTableEventEmitter {
         }
 
         // Start resolving in background
-        this.resolveAsyncFieldOptions().then(() => {
+        this.resolveAllFieldOptionsForTable().then(() => {
             // re-render dynamic options rows — no server call
             // this is needed so that once options are resolved, the table shows correct display values
             // why: load() can actually finish faster than option resolving (and calling refreshDisplayValues
             //      there is then pointless, since the resolving hasn't finished yet),
             //      so we need to do it when the options are actually resolved (here)
-            //  We could call await this.resolveAsyncFieldOptions() during load, but that would slow down the loading ...
+            //  We could call await this.resolveAllFieldOptionsForTable() during load, but that would slow down the loading ...
             setTimeout(() => {
                 this.refreshDisplayValues();
             }, 0);
@@ -2318,7 +2318,7 @@ class FTable extends FTableEventEmitter {
         }
     }
 
-    async resolveAsyncFieldOptions() {
+    async resolveAllFieldOptionsForTable() {
         this.tableOptionsCache = new Map();
 
         const promises = this.columnList.map(async (fieldName) => {
