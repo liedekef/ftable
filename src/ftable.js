@@ -621,89 +621,44 @@ class FTableFormBuilder {
         this.options = options;
         this.dependencies = new Map(); // Track field dependencies
         this.optionsCache = new FTableOptionsCache();
-        this.originalFieldOptions = new Map(); // Store original field.options
-        this.resolvedFieldOptions = new Map(); // Store resolved options per context
-
-        // Initialize with empty cache objects
-        Object.keys(this.options.fields || {}).forEach(fieldName => {
-            this.resolvedFieldOptions.set(fieldName, {});
-        });
-        Object.entries(this.options.fields).forEach(([fieldName, field]) => {
-            this.originalFieldOptions.set(fieldName, {
-                options: field.options,
-                searchOptions: field.searchOptions
-            });
-        });
     }
 
-    // Get options for specific context
+    // Get options for a field, respecting context ('search' prefers searchOptions over options).
+    // URL-level caching and concurrent-request deduplication is handled by FTableOptionsCache
+    // inside resolveOptions — no second cache layer needed here.
     async getFieldOptions(fieldName, context = 'table', params = {}) {
         const field = this.options.fields[fieldName];
-        const stored = this.originalFieldOptions.get(fieldName);
 
-        // Determine which options source to use for this context
-        let originalOptions;
-        if (context === 'search') {
-            // Prefer searchOptions; fall back to regular options
-            originalOptions = stored?.searchOptions ?? stored?.options;
-        } else {
-            originalOptions = stored?.options;
-        }
+        // For search context, prefer searchOptions and fall back to options
+        const optionsSource = (context === 'search')
+            ? (field.searchOptions ?? field.options)
+            : field.options;
 
-        // If no options or already resolved for this context with same params, return cached
-        if (!originalOptions) {
-            return null;
-        }
+        if (!optionsSource) return null;
 
-        // Determine if we should skip caching for this specific context
-        const shouldSkipCache = this.shouldForceRefreshForContext(field, context, params);
-        const cacheKey = this.generateOptionsCacheKey(context, params);
-        // Skip cache if configured or forceRefresh requested
-        if (!shouldSkipCache && !params.forceRefresh) {
-            const cached = this.resolvedFieldOptions.get(fieldName)[cacheKey];
-            if (cached) return cached;
-        }
+        const noCache = this.shouldSkipCache(field, context, params);
 
         try {
-            // Create temp field with original options for resolution
-            const tempField = { ...field, options: originalOptions };
-            const resolved = await this.resolveOptions(tempField, {
-                ...params
-            }, context, shouldSkipCache);
-            
-            // we store the resolved option always
-            this.resolvedFieldOptions.get(fieldName)[cacheKey] = resolved;
-            return resolved;
+            return await this.resolveOptions(
+                { ...field, options: optionsSource },
+                params,
+                context,
+                noCache
+            );
         } catch (err) {
             console.error(`Failed to resolve options for ${fieldName} (${context}):`, err);
-            return originalOptions;
+            return optionsSource;
         }
     }
 
-    // Helper method to determine caching behavior
-    shouldForceRefreshForContext(field, context, params) {
-        // Rename to reflect what it actually does now
+    // Determine whether to bypass the URL cache for this field/context
+    shouldSkipCache(field, context, params) {
+        if (params.forceRefresh) return true;
         if (!field.noCache) return false;
-
         if (typeof field.noCache === 'boolean') return field.noCache;
         if (typeof field.noCache === 'function') return field.noCache({ context, ...params });
         if (typeof field.noCache === 'object') return field.noCache[context] === true;
-
         return false;
-    }
-
-    generateOptionsCacheKey(context, params) {
-        // Create a unique key based on context and dependency values
-        const keyParts = [context];
-
-        if (params.dependedValues) {
-            // Include relevant dependency values in the cache key
-            Object.keys(params.dependedValues).sort().forEach(key => {
-                keyParts.push(`${key}=${params.dependedValues[key]}`);
-            });
-        }
-
-        return keyParts.join('|');
     }
 
     shouldIncludeField(field, formType) {
@@ -778,12 +733,6 @@ class FTableFormBuilder {
         return form;
     }
 
-    shouldResolveOptions(options) {
-        return options &&
-               (typeof options === 'function' || typeof options === 'string') &&
-               !Array.isArray(options) &&
-               !(typeof options === 'object' && !Array.isArray(options) && Object.keys(options).length > 0);
-    }
 
     buildDependencyMap() {
         this.dependencies.clear();
@@ -2370,21 +2319,16 @@ class FTable extends FTableEventEmitter {
     }
 
     async resolveAsyncFieldOptions() {
+        this.tableOptionsCache = new Map();
+
         const promises = this.columnList.map(async (fieldName) => {
             const field = this.options.fields[fieldName];
             if (field.action) return; // Skip action columns
-            const originalOptions = this.formBuilder.originalFieldOptions.get(fieldName)?.options;
-
-            if (this.formBuilder.shouldResolveOptions(originalOptions)) {
-                try {
-                    // Check if already resolved to avoid duplicate work
-                    const cacheKey = this.formBuilder.generateOptionsCacheKey('table', {});
-                    if (!this.formBuilder.resolvedFieldOptions.get(fieldName)?.[cacheKey]) {
-                        await this.formBuilder.getFieldOptions(fieldName, 'table');
-                    }
-                } catch (err) {
-                    console.error(`Failed to resolve table options for ${fieldName}:`, err);
-                }
+            try {
+                const resolved = await this.formBuilder.getFieldOptions(fieldName, 'table');
+                if (resolved) this.tableOptionsCache.set(fieldName, resolved);
+            } catch (err) {
+                console.error(`Failed to resolve table options for ${fieldName}:`, err);
             }
         });
 
@@ -2403,9 +2347,7 @@ class FTable extends FTableEventEmitter {
                 const cell = row.querySelector(`td[data-field-name="${fieldName}"]`);
                 if (!cell) continue;
 
-                // Get table-specific options
-                const cacheKey = this.formBuilder.generateOptionsCacheKey('table', {});
-                const resolvedOptions = this.formBuilder.resolvedFieldOptions.get(fieldName)?.[cacheKey];
+                const resolvedOptions = this.tableOptionsCache?.get(fieldName);
                 const value = this.getDisplayText(row.recordData, fieldName, resolvedOptions);
                 cell.innerHTML = field.listEscapeHTML ? FTableDOMHelper.escapeHtml(value) : value;
             }
@@ -3991,8 +3933,7 @@ class FTable extends FTableEventEmitter {
 
     addDataCell(row, record, fieldName) {
         const field = this.options.fields[fieldName];
-        const cacheKey = this.formBuilder.generateOptionsCacheKey('table', {});
-        const resolvedOptions = this.formBuilder.resolvedFieldOptions.get(fieldName)?.[cacheKey];
+        const resolvedOptions = this.tableOptionsCache?.get(fieldName);
         const value = this.getDisplayText(record, fieldName, resolvedOptions);
         
         const cell = FTableDOMHelper.create('td', {
@@ -4495,8 +4436,7 @@ class FTable extends FTableEventEmitter {
             if (!cell) return;
 
             // Get display text
-            const cacheKey = this.formBuilder.generateOptionsCacheKey('table', {});
-            const resolvedOptions = this.formBuilder.resolvedFieldOptions.get(fieldName)?.[cacheKey];
+            const resolvedOptions = this.tableOptionsCache?.get(fieldName);
             const value = this.getDisplayText(row.recordData, fieldName, resolvedOptions);
             cell.innerHTML = field.listEscapeHTML ? FTableDOMHelper.escapeHtml(value) : value;
             cell.className = `${field.listClass || ''} ${field.listClassEntry || ''}`.trim();
