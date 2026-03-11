@@ -258,11 +258,8 @@
 
                             &::before,
                             &::after {
-                                content: '';
                                 position: absolute;
-                                top: 50%;
-                                transform: translateY(-50%);
-                                font-size: 1.1em;
+                                font-size: 1em;
                                 color: #999;
                                 opacity: 0.7;
                                 text-shadow: 0 1px 0 rgba(255,255,255,0.5); // Optional: subtle highlight
@@ -270,12 +267,14 @@
 
                             &::before {
                                 content: '▲';
-                                right: .55em;
+                                right: 0;
+                                top: 0;
                             }
 
                             &::after {
                                 content: '▼';
-                                right: 0px;
+                                right: 0;
+                                top: 0.8em;
                             }
 
                         }
