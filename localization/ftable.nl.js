@@ -28,8 +28,11 @@ FTable.setMessages({
         sortingInfoPrefix: 'Sortering toegepast: ',
         ascending: 'Oplopend',
         descending: 'Aflopend',
+        resetTableConfirm: 'Hiermee worden de kolomzichtbaarheid, kolombreedtes en paginagrootte teruggezet naar de standaardinstellingen. Wilt u doorgaan?',
         sortingInfoNone: 'Geen sortering toegepast',
         csvExport: 'CSV',
         printTable: '🖨️  Print',
-        cloneRecord: 'Clone Record'
+        cloneRecord: 'Clone Record',
+        resetSorting: 'Reset sorteren',
+        resetTable: 'Reset tabel'
 });

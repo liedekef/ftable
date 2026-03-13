@@ -3318,7 +3318,7 @@ class FTable extends FTableEventEmitter {
                     onClick: () => this.modals.resetTable.close()
                 },
                 {
-                    text: this.options.messages.yes || 'Yes',
+                    text: this.options.messages.yes,
                     className: 'ftable-dialog-savebutton',
                     onClick: () => {
                         this.userPrefs.remove('column-settings');
