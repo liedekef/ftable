@@ -566,6 +566,16 @@ div.ftable-column-selection-container ul.ftable-column-select-list li input[type
 .ftable-multiselect-dropdown::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+.ftable-sort-badge {
+  float: right;
+  align-items: center;
+  font-size: 0.68em;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 2.5em;
+  margin-top: 5px;
+  line-height: 1;
+}
 div.ftable-main-container div.ftable-title div.ftable-title-text {
   font-size: 16px;
   font-weight: bold;

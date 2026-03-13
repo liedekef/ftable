@@ -32,7 +32,8 @@ const FTABLE_DEFAULT_MESSAGES = {
     printTable: '🖨️ Print',
     cloneRecord: 'Clone Record',
     resetTable: 'Reset table',
-    resetTableConfirm: 'This will reset all columns, pagesize, sorting to their defaults. Do you want to continue?',
+    resetTableConfirm: 'This will reset column visibility, column widths and page size to their defaults. Do you want to continue?',
+    resetTableTooltip: 'Resets column visibility, column widths and page size to defaults. Sorting is not affected.',
     resetSearch: 'Reset'
 };
 
@@ -2016,7 +2017,8 @@ class FTable extends FTableEventEmitter {
             saveUserPreferences: true,
             saveUserPreferencesMethod: 'localStorage',
             defaultSorting: '',
-            tableReset: false,
+            tableResetButton: false,
+            sortingResetButton: false,
             
             // Paging
             paging: false,
@@ -2224,6 +2226,23 @@ class FTable extends FTableEventEmitter {
         // Page size selector if enabled
         if (this.options.pageSizeChangeArea !== false) {
             this.createPageSizeSelector();
+        }
+
+        // Table reset button — resets column visibility/widths and pageSize (not sorting)
+        if (this.options.tableResetButton) {
+            const resetTableBtn = FTableDOMHelper.create('button', {
+                className: 'ftable-toolbar-item ftable-table-reset-btn',
+                textContent: this.options.messages.resetTable || 'Reset table',
+                title: this.options.messages.resetTableTooltip || 'Resets column visibility, column widths and page size to defaults.',
+                type: 'button',
+                parent: this.elements.rightArea
+            });
+            resetTableBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const msg = this.options.messages.resetTableConfirm;
+                this.modals.resetTable.setContent(`<p>${msg}</p>`);
+                this.modals.resetTable.show();
+            });
         }
 
     }
@@ -3195,6 +3214,10 @@ class FTable extends FTableEventEmitter {
         this.createInfoModal();
         this.createLoadingModal();
 
+        if (this.options.tableResetButton) {
+            this.createResetTableModal();
+        }
+
         // Initialize them (create DOM) once
         Object.values(this.modals).forEach(modal => modal.create());
     }
@@ -3275,6 +3298,34 @@ class FTable extends FTableEventEmitter {
                     text: this.options.messages.deleteText,
                     className: 'ftable-dialog-deletebutton',
                     onClick: () => this.confirmDelete()
+                }
+            ]
+        });
+    }
+
+    createResetTableModal() {
+        this.modals.resetTable = new FtableModal({
+            parent: this.elements.mainContainer,
+            title: this.options.messages.resetTable || 'Reset table',
+            className: 'ftable-reset-table-modal',
+            closeOnOverlayClick: this.options.closeOnOverlayClick,
+            buttons: [
+                {
+                    text: this.options.messages.cancel,
+                    className: 'ftable-dialog-cancelbutton',
+                    onClick: () => this.modals.resetTable.close()
+                },
+                {
+                    text: this.options.messages.yes || 'Yes',
+                    className: 'ftable-dialog-savebutton',
+                    onClick: () => {
+                        this.userPrefs.remove('column-settings');
+                        // Preserve current sorting, only reset column settings and pageSize
+                        this.userPrefs.set('table-state', JSON.stringify({
+                            sorting: this.state.sorting
+                        }));
+                        location.reload();
+                    }
                 }
             ]
         });
@@ -3561,6 +3612,21 @@ class FTable extends FTableEventEmitter {
                     this.printTable();
                 }
             });
+        }
+
+        // Sorting reset button — visible only when sorting differs from default
+        if (this.options.sorting && this.options.sortingResetButton) {
+            this.elements.sortingResetBtn = this.addToolbarButton({
+                text: this.options.messages.resetSorting || 'Reset sorting',
+                className: 'ftable-toolbar-item-sorting-reset',
+                onClick: () => {
+                    this.state.sorting = [];
+                    this.updateSortingHeaders();
+                    this.load();
+                    this.saveState();
+                }
+            });
+            FTableDOMHelper.hide(this.elements.sortingResetBtn); // hidden by default
         }
 
         if (this.options.actions.createAction) {
@@ -4602,19 +4668,45 @@ class FTable extends FTableEventEmitter {
     }
 
     updateSortingHeaders() {
-        // Clear all sorting classes
+        // Clear all sorting classes and remove any existing sort badges
         const headers = this.elements.table.querySelectorAll('.ftable-column-header-sortable');
         headers.forEach(header => {
             FTableDOMHelper.removeClass(header, 'ftable-column-header-sorted-asc ftable-column-header-sorted-desc');
+            const existing = header.querySelector('.ftable-sort-badge');
+            if (existing) existing.remove();
         });
-        
-        // Apply current sorting classes
-        this.state.sorting.forEach(sort => {
+
+        // Apply current sorting classes and sort number badges
+        this.state.sorting.forEach((sort, index) => {
             const header = this.elements.table.querySelector(`[data-field-name="${sort.fieldName}"]`);
-            if (header) {
-                FTableDOMHelper.addClass(header, `ftable-column-header-sorted-${sort.direction.toLowerCase()}`);
+            if (!header) return;
+
+            FTableDOMHelper.addClass(header, `ftable-column-header-sorted-${sort.direction.toLowerCase()}`);
+
+            // Sort number badge — only show when multisorting with more than 1 active sort
+            if (this.options.multiSorting && this.state.sorting.length > 1) {
+                const container = header.querySelector('.ftable-column-header-container');
+                if (container) {
+                    FTableDOMHelper.create('span', {
+                        className: 'ftable-sort-badge',
+                        textContent: String(index + 1),
+                        parent: container
+                    });
+                }
             }
         });
+
+        // Update visibility of the sorting reset toolbar button
+        this._updateSortingResetButton();
+    }
+
+    _updateSortingResetButton() {
+        if (!this.elements.sortingResetBtn) return;
+        if (this.state.sorting.length === 0) {
+            FTableDOMHelper.hide(this.elements.sortingResetBtn);
+        } else {
+            FTableDOMHelper.show(this.elements.sortingResetBtn);
+        }
     }
 
     // Paging Methods
@@ -5422,65 +5514,20 @@ class FTable extends FTableEventEmitter {
 
         const messages = this.options.messages || {};
 
-        // Get prefix/suffix if defined
-        const prefix = messages.sortingInfoPrefix ? `<span class="ftable-sorting-prefix">${messages.sortingInfoPrefix}</span> ` : '';
-        const suffix = messages.sortingInfoSuffix ? ` <span class="ftable-sorting-suffix">${messages.sortingInfoSuffix}</span>` : '';
-
         if (this.state.sorting.length === 0) {
             container.innerHTML = messages.sortingInfoNone || '';
             return;
         }
+
+        // Get prefix/suffix if defined
+        const prefix = messages.sortingInfoPrefix ? `<span class="ftable-sorting-prefix">${messages.sortingInfoPrefix}</span> ` : '';
+        const suffix = messages.sortingInfoSuffix ? ` <span class="ftable-sorting-suffix">${messages.sortingInfoSuffix}</span>` : '';
 
         // Build sorted fields list with translated directions
         const sortingInfo = this.getSortingInfo();
 
         // Combine with prefix and suffix
         container.innerHTML = `${prefix}${sortingInfo}${suffix}`;
-
-        // Add reset sorting button
-        if (this.state.sorting.length > 0) {
-            const resetSortBtn = document.createElement('button');
-            resetSortBtn.textContent = messages.resetSorting || 'Reset Sorting';
-            resetSortBtn.style.marginLeft = '10px';
-            resetSortBtn.classList.add('ftable-sorting-reset-btn');
-            resetSortBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.state.sorting = [];
-                this.updateSortingHeaders();
-                this.load();
-                this.saveState();
-            });
-            container.appendChild(resetSortBtn);
-        }
-
-        // Add reset table button if enabled
-        if (this.options.tableReset) {
-            const resetTableBtn = document.createElement('button');
-            resetTableBtn.textContent = messages.resetTable || 'Reset Table';
-            resetTableBtn.style.marginLeft = '10px';
-            resetTableBtn.classList.add('ftable-table-reset-btn');
-            resetTableBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const confirmMsg = messages.resetTableConfirm;
-                if (confirm(confirmMsg)) {
-                    this.userPrefs.remove('column-settings');
-                    this.userPrefs.remove('table-state');
-
-                    // Clear any in-memory state that might affect rendering
-                    this.state.sorting = [];
-                    this.state.pageSize = this.options.pageSize;
-
-                    // Reset field visibility to default
-                    this.columnList.forEach(fieldName => {
-                        const field = this.options.fields[fieldName];
-                        // Reset to default: hidden only if explicitly set
-                        field.visibility = field.visibility === 'fixed' ? 'fixed' : 'visible';
-                    });
-                    location.reload();
-                }
-            });
-            container.appendChild(resetTableBtn);
-        }
     }
 
     /**
