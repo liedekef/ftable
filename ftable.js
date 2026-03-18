@@ -1333,7 +1333,23 @@ class FTableFormBuilder {
         });
 
         if (field.options) {
-            this.populateSelectOptions(select, field.options, value);
+            // If a placeholder is defined and the options don't already start with an empty
+            // option, prepend one so that populateSelectOptions handles selected-state correctly.
+            let options = field.options;
+            if (field.placeholder !== undefined) {
+                const firstValue = Array.isArray(options)
+                    ? (options[0]?.Value ?? options[0]?.value ?? options[0])
+                    : Object.keys(options)[0];
+                if (firstValue !== '' && firstValue !== undefined) {
+                    const emptyOption = Array.isArray(options)
+                        ? { Value: '', DisplayText: field.placeholder }
+                        : { '': field.placeholder };
+                    options = Array.isArray(options)
+                        ? [emptyOption, ...options]
+                        : Object.fromEntries([['', field.placeholder], ...Object.entries(options)]);
+                }
+            }
+            this.populateSelectOptions(select, options, value);
         }
 
         return select;
@@ -2845,7 +2861,7 @@ class FTable extends FTableEventEmitter {
         if (!hasEmptyFirst) {
             FTableDOMHelper.create('option', {
                 value: '',
-                innerHTML: '&nbsp;',
+                innerHTML: field.searchPlaceholder || field.placeholder || '&nbsp;',
                 parent: select
             });
         }
