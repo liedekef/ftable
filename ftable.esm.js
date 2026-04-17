@@ -4242,7 +4242,6 @@ class FTable extends FTableEventEmitter {
             const result = await this.performCreate(formData);
             
             if (result.Result === 'OK') {
-                this.clearListCache();
                 this.modals.addRecord.close();
 				
 				// Verwijder het formulier
@@ -4257,7 +4256,7 @@ class FTable extends FTableEventEmitter {
                 if (result.Message) {
                     this.showInfo(result.Message);
                 }
-                await this.load(); // Reload to show new record
+                this.reload(); // Reload to show new record (also clears cache)
                 this.emit('recordAdded', { record: result.Record });
             } else {
                 this.showError(result.Message || 'Create failed');
@@ -4417,11 +4416,15 @@ class FTable extends FTableEventEmitter {
             if (result.Result === 'OK') {
                 this.clearListCache();
                 this.modals.deleteConfirm.close();
-                this.removeRowFromTable(this.currentDeletingRow);
+                this.removeRowFromTable(this.currentDeletingRow); // could be animated, so we show that first
                 if (result.Message) {
                     this.showInfo(result.Message);
                 }
                 this.emit('recordDeleted', { record: this.currentDeletingRow.recordData });
+                // reload, otherwise you see 1 row less on a page than expected ...
+                if (this.options.paging) {
+                    this.reload();
+                }
             } else {
                 this.showError(result.Message || 'Delete failed');
             }
