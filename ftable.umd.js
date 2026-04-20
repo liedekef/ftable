@@ -1155,7 +1155,7 @@ class FTableFormBuilder {
             }
             return container;
         } else {
-            return createTypedInput(fieldName, field, value);
+            return this.createTypedInput(fieldName, field, value);
         }
     }
 
