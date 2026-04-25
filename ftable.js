@@ -815,6 +815,9 @@ class FTableFormBuilder {
         }
 
         // --- Handle result ---
+        // If the function returned an array, use it directly.
+        if (Array.isArray(result)) return result;
+
         const isObjectResult = result && typeof result === 'object' && result.url;
         const url = isObjectResult ? result.url : result;
         noCache = isObjectResult && result.noCache !== undefined ? result.noCache : noCache;
@@ -1913,6 +1916,9 @@ class FTableFormBuilder {
                     selected: value == selectedValue,
                     parent: parent
                 });
+                if (option.disabled) {
+                    optionElement.disabled = true;
+                }
                 if (option.Data && typeof option.Data === 'object') {
                     Object.entries(option.Data).forEach(([key, dataValue]) => {
                         optionElement.setAttribute(`data-${key}`, dataValue);
