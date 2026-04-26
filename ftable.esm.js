@@ -2637,61 +2637,41 @@ class FTable extends FTableEventEmitter {
                         if (typeof FDatepicker !== 'undefined') {
                             const dateFormat = field.searchDateFormat || field.dateFormat || this.options.defaultDateFormat;
                             const containerDiv = document.createElement('div');
-                            // Create visible input; FDatepicker will auto-create the hidden field
-                            // via altFormat without altField, and move `name` to it.
                             const visibleInput = FTableDOMHelper.create('input', {
                                 className: 'ftable-toolbarsearch',
                                 id: 'ftable-toolbarsearch-' + fieldName,
                                 type: 'text',
                                 placeholder: field.searchPlaceholder || field.placeholder || '',
                                 readOnly: true,
-                                attributes: {
-                                    'data-field-name': fieldName,
-                                }
                             });
                             containerDiv.appendChild(visibleInput);
-                            // Expose data-field-name on the container too, so the generic
-                            // event-listener path below can use it as a fallback.
-                            containerDiv.dataset.fieldName = fieldName;
 
-                            // onSelect callback: triggered by FDatepicker after a date is picked
-                            // or cleared. We read the value straight from the auto-created hidden
-                            // field and push it into searchQueries ourselves — this avoids relying
-                            // on event.target having data-field-name.
-                            const triggerSearch = (formattedDate) => {
-                                this.state.currentPage = 1;
-                                if (formattedDate) {
-                                    this.state.searchQueries[fieldName] = formattedDate;
-                                } else {
-                                    delete this.state.searchQueries[fieldName];
-                                }
-                                clearTimeout(this.searchTimeout);
-                                this.searchTimeout = setTimeout(() => { this.load(); }, this.options.searchDebounceMs);
-                            };
-
-                            // Apply FDatepicker — no explicit altField needed; FDatepicker creates
-                            // the hidden field automatically (id: visibleInput.id + '-fdp-alt').
-                            // Initialize FDatepicker AFTER the container is in the DOM.
+                            // After FDatepicker initialises it auto-creates a hidden field with
+                            // id = visibleInput.id + '-fdp-alt'. We set data-field-name on that
+                            // hidden field so the existing handleSearchInputChange picks up the
+                            // altFormat value (e.g. Y-m-d) instead of the display value.
                             switch (searchType) {
                                 case 'date':
-                                    setTimeout(() => { 
+                                    setTimeout(() => {
                                         new FDatepicker(visibleInput, {
                                             format: dateFormat,
                                             altFormat: 'Y-m-d',
-                                            autoClose: true,
-                                            onSelect: triggerSearch
+                                            autoClose: true
                                         });
+                                        const hiddenField = document.getElementById(visibleInput.id + '-fdp-alt');
+                                        if (hiddenField) hiddenField.setAttribute('data-field-name', fieldName);
                                     }, 0);
                                     break;
                                 case 'datetime':
                                 case 'datetime-local':
-                                    setTimeout(() => { 
+                                    setTimeout(() => {
                                         new FDatepicker(visibleInput, {
                                             format: dateFormat,
                                             timepicker: true,
-                                            altFormat: 'Y-m-d H:i:00',
-                                            onSelect: triggerSearch
+                                            altFormat: 'Y-m-d H:i:00'
                                         });
+                                        const hiddenField = document.getElementById(visibleInput.id + '-fdp-alt');
+                                        if (hiddenField) hiddenField.setAttribute('data-field-name', fieldName);
                                     }, 0);
                                     break;
                             }
