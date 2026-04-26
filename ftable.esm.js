@@ -1099,15 +1099,9 @@ class FTableFormBuilder {
             const dateFormat = field.dateFormat || this.options.defaultDateFormat;
 
             const container = document.createElement('div');
-            // Create hidden input
-            const hiddenInput = FTableDOMHelper.create('input', {
-                id: 'real-' + fieldName,
-                type: 'hidden',
-                value: value,
-                name: fieldName
-            });
 
-            // Create visible input
+            // Create visible input; name is set here so FDatepicker can move it
+            // to its auto-created hidden field (altFormat without altField).
             const attributes = {
                 'data-date': value
             };
@@ -1120,25 +1114,24 @@ class FTableFormBuilder {
             const visibleInput = FTableDOMHelper.create('input', { 
                 attributes: attributes,
                 id: `Edit-${fieldName}`,
+                name: fieldName,
                 type: 'text',
                 placeholder: field.placeholder || null,
                 className: field.inputClass || 'datepicker-input',
                 readOnly: true
             });
 
-            // Append both inputs
-            container.appendChild(hiddenInput);
             container.appendChild(visibleInput);
 
-            // Apply FDatepicker
+            // Apply FDatepicker — no explicit altField needed; FDatepicker creates
+            // the hidden field automatically and moves `name` to it.
             // Initialize FDatepicker AFTER the container is in the DOM
             // We'll use a small timeout to ensure DOM attachment
             switch (field.type) {
                 case 'date':
                     setTimeout(() => { 
-                        const picker = new FDatepicker(visibleInput, {
+                        new FDatepicker(visibleInput, {
                             format: dateFormat,
-                            altField: 'real-' + fieldName,
                             altFormat: 'Y-m-d'
                         });
                     }, 0);
@@ -1146,10 +1139,9 @@ class FTableFormBuilder {
                 case 'datetime':
                 case 'datetime-local':
                     setTimeout(() => { 
-                        const picker = new FDatepicker(visibleInput, {
+                        new FDatepicker(visibleInput, {
                             format: dateFormat,
                             timepicker: true,
-                            altField: 'real-' + fieldName,
                             altFormat: 'Y-m-d H:i:00'
                         });
                     }, 0);
@@ -2645,49 +2637,60 @@ class FTable extends FTableEventEmitter {
                         if (typeof FDatepicker !== 'undefined') {
                             const dateFormat = field.searchDateFormat || field.dateFormat || this.options.defaultDateFormat;
                             const containerDiv = document.createElement('div');
-                            // Create hidden input
-                            const hiddenInput = FTableDOMHelper.create('input', {
-                                className: 'ftable-toolbarsearch-extra',
-                                type: 'hidden',
-                                id: 'ftable-toolbarsearch-extra-' + fieldName,
-                                attributes: {
-                                    'data-field-name': fieldName,
-                                }
-                            });
-                            // Create visible input
+                            // Create visible input; FDatepicker will auto-create the hidden field
+                            // via altFormat without altField, and move `name` to it.
                             const visibleInput = FTableDOMHelper.create('input', {
                                 className: 'ftable-toolbarsearch',
                                 id: 'ftable-toolbarsearch-' + fieldName,
                                 type: 'text',
                                 placeholder: field.searchPlaceholder || field.placeholder || '',
-                                readOnly: true
+                                readOnly: true,
+                                attributes: {
+                                    'data-field-name': fieldName,
+                                }
                             });
-                            // Append both inputs
-                            containerDiv.appendChild(hiddenInput);
                             containerDiv.appendChild(visibleInput);
+                            // Expose data-field-name on the container too, so the generic
+                            // event-listener path below can use it as a fallback.
+                            containerDiv.dataset.fieldName = fieldName;
 
-                            // Apply FDatepicker
-                            // Initialize FDatepicker AFTER the container is in the DOM
-                            // We'll use a small timeout to ensure DOM attachment
+                            // onSelect callback: triggered by FDatepicker after a date is picked
+                            // or cleared. We read the value straight from the auto-created hidden
+                            // field and push it into searchQueries ourselves — this avoids relying
+                            // on event.target having data-field-name.
+                            const triggerSearch = (formattedDate) => {
+                                this.state.currentPage = 1;
+                                if (formattedDate) {
+                                    this.state.searchQueries[fieldName] = formattedDate;
+                                } else {
+                                    delete this.state.searchQueries[fieldName];
+                                }
+                                clearTimeout(this.searchTimeout);
+                                this.searchTimeout = setTimeout(() => { this.load(); }, this.options.searchDebounceMs);
+                            };
+
+                            // Apply FDatepicker — no explicit altField needed; FDatepicker creates
+                            // the hidden field automatically (id: visibleInput.id + '-fdp-alt').
+                            // Initialize FDatepicker AFTER the container is in the DOM.
                             switch (searchType) {
                                 case 'date':
                                     setTimeout(() => { 
-                                        const picker = new FDatepicker(visibleInput, {
+                                        new FDatepicker(visibleInput, {
                                             format: dateFormat,
-                                            altField: 'ftable-toolbarsearch-extra-' + fieldName,
                                             altFormat: 'Y-m-d',
-                                            autoClose: true
+                                            autoClose: true,
+                                            onSelect: triggerSearch
                                         });
                                     }, 0);
                                     break;
                                 case 'datetime':
                                 case 'datetime-local':
                                     setTimeout(() => { 
-                                        const picker = new FDatepicker(visibleInput, {
+                                        new FDatepicker(visibleInput, {
                                             format: dateFormat,
                                             timepicker: true,
-                                            altField: 'ftable-toolbarsearch-extra-' + fieldName,
-                                            altFormat: 'Y-m-d H:i:00'
+                                            altFormat: 'Y-m-d H:i:00',
+                                            onSelect: triggerSearch
                                         });
                                     }, 0);
                                     break;
