@@ -4498,7 +4498,6 @@ class FTable extends FTableEventEmitter {
 
     updateRowData(row, newData) {
         row.recordData = { ...row.recordData, ...newData };
-        //Object.assign(row.recordData, newData);
 
         // Update only the fields that were changed
         Object.keys(newData).forEach(fieldName => {
@@ -4515,7 +4514,26 @@ class FTable extends FTableEventEmitter {
             cell.innerHTML = field.listEscapeHTML ? FTableDOMHelper.escapeHtml(value) : value;
             cell.className = `${field.listClass || ''} ${field.listClassEntry || ''}`.trim();
         });
+    }
 
+    updateFullRowData(row, newData) {
+        row.recordData = { ...row.recordData, ...newData };
+
+        // Update all fields
+        this.columnList.forEach( fieldName => {
+            const field = this.options.fields[fieldName];
+            if (!field) return;
+
+            // Find the cell for this field
+            const cell = row.querySelector(`td[data-field-name="${fieldName}"]`);
+            if (!cell) return;
+
+            // Get display text
+            const resolvedOptions = this.tableOptionsCache?.get(fieldName);
+            const value = this.getDisplayText(row.recordData, fieldName, resolvedOptions);
+            cell.innerHTML = field.listEscapeHTML ? FTableDOMHelper.escapeHtml(value) : value;
+            cell.className = `${field.listClass || ''} ${field.listClassEntry || ''}`.trim();
+        });
     }
 
     removeRowFromTable(row) {
