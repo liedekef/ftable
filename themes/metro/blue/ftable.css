@@ -621,6 +621,10 @@ div.ftable-column-selection-container ul.ftable-column-select-list li input[type
   margin-top: 5px;
   line-height: 1;
 }
+.ftable-page-size-select {
+  line-height: 1.5;
+  min-height: unset;
+}
 div.ftable-main-container {
   font-family: 'Segoe UI Semilight', 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
   font-weight: 300;
