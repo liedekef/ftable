@@ -2039,6 +2039,7 @@ class FTable extends FTableEventEmitter {
             pageList: 'normal',
             pageSize: 10,
             pageSizes: [10, 25, 50, 100, 250, 500],
+            pageSizeChangeArea: true,
             gotoPageArea: 'combobox',
             
             // Sorting
