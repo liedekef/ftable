@@ -3374,38 +3374,65 @@ class FTable extends FTableEventEmitter {
 
     /**
      * Show a confirm dialog and return a Promise that resolves to true (confirm) or false (cancel).
-     * 
-     * @param {string} title                        - Modal title
-     * @param {string} message                      - Modal body (HTML allowed)
-     * @param {object} [options={}]
-     * @param {string} [options.confirmText]        - Label for the confirm button (default: messages.confirm || 'Confirm')
-     * @param {string} [options.cancelText]         - Label for the cancel button  (default: messages.cancel  || 'Cancel')
-     * @param {string} [options.confirmClassName]   - CSS class for the confirm button (default: 'ftable-dialog-confirmbutton')
-     * @param {string} [options.className]          - CSS class for the modal itself  (default: 'ftable-confirm-modal')
+     * Delegates to FTable.confirm(), enriching options with instance defaults (i18n, parent, closeOnOverlayClick).
+     *
+     * @param {string} title             - Modal title
+     * @param {string} message           - Modal body (HTML allowed)
+     * @param {object} [options={}]      - Override any FTable.confirm() option
      * @returns {Promise<boolean>}
-     * 
+     *
      * @example
-     * const ok = await this.ftable.confirm('Negeer rijen', `Wil je ${n} rijen negeren?`);
+     * const ok = await ftableInstance.confirm('Ignore rows', `Are you sure?`);
      * if (!ok) return;
      */
     confirm( title, message, options = {} ) {
+        return FTable.confirm( title, message, {
+            parent             : this.elements.mainContainer,
+            cancelText         : this.options.messages.cancel,
+            confirmText        : this.options.messages.confirm,
+            closeOnOverlayClick: this.options.closeOnOverlayClick,
+            ...options,
+        } );
+    }
+
+    /**
+     * Static version — usable without an FTable instance.
+     *
+     * @param {string} title                        - Modal title
+     * @param {string} message                      - Modal body (HTML allowed)
+     * @param {object} [options={}]
+     * @param {Element} [options.parent]            - DOM parent for the modal (default: document.body)
+     * @param {string}  [options.cancelText]        - Cancel button label        (default: 'Cancel')
+     * @param {string}  [options.confirmText]       - Confirm button label       (default: 'Confirm')
+     * @param {string}  [options.confirmClassName]  - Confirm button CSS class   (default: 'ftable-dialog-confirmbutton')
+     * @param {string}  [options.className]         - Modal CSS class            (default: 'ftable-confirm-modal')
+     * @param {boolean} [options.closeOnOverlayClick] - Close on backdrop click  (default: true)
+     * @returns {Promise<boolean>}
+     *
+     * @example
+     * const ok = await FTable.confirm('Delete', 'Are you sure?');
+     * if (!ok) return;
+     */
+    static confirm( title, message, options = {} ) {
         return new Promise( ( resolve ) => {
+            const done = ( result ) => { modal.destroy(); resolve( result ); };
             const modal = new FtableModal( {
-                parent             : this.elements.mainContainer,
+                parent             : options.parent              || document.body,
                 title,
                 content            : `<p>${message}</p>`,
-                className          : options.className          || 'ftable-confirm-modal',
-                closeOnOverlayClick: this.options.closeOnOverlayClick,
+                className          : options.className           || 'ftable-confirm-modal',
+                closeOnOverlayClick: options.closeOnOverlayClick ?? true,
+                onClose            : () => done( false ),    // overlay click or X button → cancel
                 buttons            : [
                     {
-                        text      : options.cancelText          || this.options.messages.cancel  || 'Cancel',
+                        text      : options.cancelText           || FTABLE_DEFAULT_MESSAGES.cancel  || 'Cancel',
                         className : 'ftable-dialog-cancelbutton',
-                        onClick   : () => { modal.close(); resolve( false ); },
+                        onClick   : () => done( false ),
                     },
                     {
-                        text      : options.confirmText         || this.options.messages.confirm || 'Confirm',
-                        className : options.confirmClassName    || 'ftable-dialog-confirmbutton',
-                        onClick   : () => { modal.close(); resolve( true ); },
+                        text      : options.confirmText          || FTABLE_DEFAULT_MESSAGES.confirm || 'Confirm',
+                        className : options.confirmClassName     || 'ftable-dialog-confirmbutton',
+                        onClick   : () => done( true ),
                     },
                 ],
             } );
