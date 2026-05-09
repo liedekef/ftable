@@ -256,6 +256,10 @@ div.ftable-main-container div.ftable-column-resize-bar {
   width: 1px;
   background-color: #000;
 }
+div.ftable-main-container select.ftable-page-size-select {
+  line-height: 1.5;
+  min-height: unset;
+}
 form.ftable-dialog-form div.ftable-input-field-container {
   padding: 2px 0px 3px 0px;
   border-bottom: 1px solid #ddd;
@@ -572,10 +576,6 @@ div.ftable-column-selection-container ul.ftable-column-select-list li input[type
   width: 2.5em;
   margin-top: 5px;
   line-height: 1;
-}
-.ftable-page-size-select {
-  line-height: 1.5;
-  min-height: unset;
 }
 div.ftable-main-container {
   font-family: Verdana, Arial, Helvetica, sans-serif;

@@ -3211,9 +3211,7 @@ class FTable extends FTableEventEmitter {
             this.createEditRecordModal();
         }
         
-        if (this.options.actions.deleteAction) {
-            this.createDeleteConfirmModal();
-        }
+        // delete confirm uses the generic confirm() method — no pre-created modal needed
 
         this.createErrorModal();
         this.createWarningModal();
@@ -3283,27 +3281,6 @@ class FTable extends FTableEventEmitter {
                     text: this.options.messages.save,
                     className: 'ftable-dialog-savebutton',
                     onClick: () => this.saveEditedRecord()
-                }
-            ]
-        });
-    }
-
-    createDeleteConfirmModal() {
-        this.modals.deleteConfirm = new FtableModal({
-            parent: this.elements.mainContainer,
-            title: this.options.messages.areYouSure,
-            className: 'ftable-delete-modal',
-            closeOnOverlayClick: this.options.closeOnOverlayClick,
-            buttons: [
-                {
-                    text: this.options.messages.cancel,
-                    className: 'ftable-dialog-cancelbutton',
-                    onClick: () => this.modals.deleteConfirm.close()
-                },
-                {
-                    text: this.options.messages.deleteText,
-                    className: 'ftable-dialog-deletebutton',
-                    onClick: () => this.confirmDelete()
                 }
             ]
         });
@@ -3395,6 +3372,48 @@ class FTable extends FTableEventEmitter {
         });
     }
 
+    /**
+     * Show a confirm dialog and return a Promise that resolves to true (confirm) or false (cancel).
+     * 
+     * @param {string} title                        - Modal title
+     * @param {string} message                      - Modal body (HTML allowed)
+     * @param {object} [options={}]
+     * @param {string} [options.confirmText]        - Label for the confirm button (default: messages.confirm || 'Confirm')
+     * @param {string} [options.cancelText]         - Label for the cancel button  (default: messages.cancel  || 'Cancel')
+     * @param {string} [options.confirmClassName]   - CSS class for the confirm button (default: 'ftable-dialog-confirmbutton')
+     * @param {string} [options.className]          - CSS class for the modal itself  (default: 'ftable-confirm-modal')
+     * @returns {Promise<boolean>}
+     * 
+     * @example
+     * const ok = await this.ftable.confirm('Negeer rijen', `Wil je ${n} rijen negeren?`);
+     * if (!ok) return;
+     */
+    confirm( title, message, options = {} ) {
+        return new Promise( ( resolve ) => {
+            const modal = new FtableModal( {
+                parent             : this.elements.mainContainer,
+                title,
+                content            : `<p>${message}</p>`,
+                className          : options.className          || 'ftable-confirm-modal',
+                closeOnOverlayClick: this.options.closeOnOverlayClick,
+                buttons            : [
+                    {
+                        text      : options.cancelText          || this.options.messages.cancel  || 'Cancel',
+                        className : 'ftable-dialog-cancelbutton',
+                        onClick   : () => { modal.close(); resolve( false ); },
+                    },
+                    {
+                        text      : options.confirmText         || this.options.messages.confirm || 'Confirm',
+                        className : options.confirmClassName    || 'ftable-dialog-confirmbutton',
+                        onClick   : () => { modal.close(); resolve( true ); },
+                    },
+                ],
+            } );
+            modal.create();
+            modal.show();
+        } );
+    }
+
     bindEvents() {
         // Subscribe all event handlers from options
         this.subscribeOptionEvents();
@@ -3425,7 +3444,7 @@ class FTable extends FTableEventEmitter {
             'recordAdded', // { record: result.Record }
             // 'rowUpdated', NOT EMITTED
             'recordUpdated', // { record: result.Record || formData }
-            'recordDeleted', // { record: this.currentDeletingRow.recordData }
+            'recordDeleted', // { record: row.recordData }
             'selectionChanged', // { selectedRows: this.getSelectedRows() }
             //'bulkDelete', // NOT USEFULL { results: results, successful: successfulDeletes.length, failed: failed }
             //'columnVisibilityChanged', // NOT USEFULL { field: field }
@@ -4327,12 +4346,19 @@ class FTable extends FTableEventEmitter {
         this.emit('formCreated', { form: form, formType: 'create', record: record });
     }
 
-    async deleteRows(keys) {
-        if (!keys.length) return;
-        const confirmMsg = this.options.messages.areYouSure;
-        if (!confirm(confirmMsg)) {
-            return;
-        }
+    async deleteRows( keys ) {
+        if ( !keys.length ) return;
+
+        const ok = await this.confirm(
+            this.options.messages.areYouSure,
+            this.options.messages.deleteConfirmation,
+            {
+                confirmText     : this.options.messages.deleteText,
+                confirmClassName: 'ftable-dialog-deletebutton',
+                className       : 'ftable-delete-modal',
+            }
+        );
+        if ( !ok ) return;
         const results = [];
         for (const key of keys) {
             try {
@@ -4363,25 +4389,25 @@ class FTable extends FTableEventEmitter {
         // this.emit('bulkDelete', { results: results, successful: successfulDeletes.length, failed: failed });
     }
 
-    deleteRecord(row) {
+    async deleteRecord( row ) {
         const record = row.recordData;
         let deleteConfirmMessage = this.options.messages.deleteConfirmation; // Default
 
         // If deleteConfirmation is a function, call it
-        if (typeof this.options.deleteConfirmation === 'function') {
+        if ( typeof this.options.deleteConfirmation === 'function' ) {
             const data = {
-                row: row,
-                record: record,
+                row                : row,
+                record             : record,
                 deleteConfirmMessage: deleteConfirmMessage,
-                cancel: false,
-                cancelMessage: this.options.messages.cancel
+                cancel             : false,
+                cancelMessage      : this.options.messages.cancel
             };
-            this.options.deleteConfirmation(data);
+            this.options.deleteConfirmation( data );
 
             // Respect cancellation
-            if (data.cancel) {
-                if (data.cancelMessage) {
-                    this.showError(data.cancelMessage);
+            if ( data.cancel ) {
+                if ( data.cancelMessage ) {
+                    this.showError( data.cancelMessage );
                 }
                 return;
             }
@@ -4389,37 +4415,40 @@ class FTable extends FTableEventEmitter {
             // Use updated message
             deleteConfirmMessage = data.deleteConfirmMessage;
         }
-        this.modals.deleteConfirm.setContent(`<p>${deleteConfirmMessage}</p>`);
-        this.modals.deleteConfirm.show();
-        this.currentDeletingRow = row;
-    }
 
-    async confirmDelete() {
-        if (!this.currentDeletingRow) return;
+        const ok = await this.confirm(
+            this.options.messages.areYouSure,
+            deleteConfirmMessage,
+            {
+                confirmText     : this.options.messages.deleteText,
+                confirmClassName: 'ftable-dialog-deletebutton',
+                className       : 'ftable-delete-modal',
+            }
+        );
+        if ( !ok ) return;
 
-        const keyValue = this.getKeyValue(this.currentDeletingRow.recordData);
-        
+        const keyValue = this.getKeyValue( record );
+
         try {
-            const result = await this.performDelete(keyValue);
-            
-            if (result.Result === 'OK') {
+            const result = await this.performDelete( keyValue );
+
+            if ( result.Result === 'OK' ) {
                 this.clearListCache();
-                this.modals.deleteConfirm.close();
-                this.removeRowFromTable(this.currentDeletingRow); // could be animated, so we show that first
-                if (result.Message) {
-                    this.showInfo(result.Message);
+                this.removeRowFromTable( row ); // could be animated, so we show that first
+                if ( result.Message ) {
+                    this.showInfo( result.Message );
                 }
-                this.emit('recordDeleted', { record: this.currentDeletingRow.recordData });
+                this.emit( 'recordDeleted', { record } );
                 // reload, otherwise you see 1 row less on a page than expected ...
-                if (this.options.paging) {
+                if ( this.options.paging ) {
                     this.reload();
                 }
             } else {
-                this.showError(result.Message || 'Delete failed');
+                this.showError( result.Message || 'Delete failed' );
             }
-        } catch (error) {
-            this.showError(this.options.messages.serverCommunicationError);
-            this.logger.error(`Delete failed: ${error.message}`);
+        } catch ( error ) {
+            this.showError( this.options.messages.serverCommunicationError );
+            this.logger.error( `Delete failed: ${error.message}` );
         }
     }
 
@@ -5218,14 +5247,23 @@ class FTable extends FTableEventEmitter {
     }
 
     // Bulk operations
-    async bulkDelete(confirmMessage = 'Delete selected records?') {
+    async bulkDelete( confirmMessage = this.options.messages.deleteConfirmation || 'Delete selected records?' ) {
         const selectedRows = this.getSelectedRows();
-        if (selectedRows.length === 0) {
-            this.showError('No records selected');
+        if ( selectedRows.length === 0 ) {
+            this.showError( 'No records selected' );
             return;
         }
 
-        if (!confirm(confirmMessage)) return;
+        const ok = await this.confirm(
+            this.options.messages.areYouSure,
+            confirmMessage,
+            {
+                confirmText     : this.options.messages.deleteText,
+                confirmClassName: 'ftable-dialog-deletebutton',
+                className       : 'ftable-delete-modal',
+            }
+        );
+        if ( !ok ) return;
 
         const keyValues = selectedRows.map(row => this.getKeyValue(row.recordData));
         const results = [];
