@@ -16,6 +16,7 @@ const FTABLE_DEFAULT_MESSAGES = {
     error: 'An error has occured',
     warning: 'Warning',
     close: 'Close',
+    confirm: 'Confirm',
     cannotLoadOptionsFor: 'Cannot load options for field {0}!',
     pagingInfo: 'Showing {0}-{1} of {2}',
     canNotDeletedRecords: 'Can not delete {0} of {1} records!',
