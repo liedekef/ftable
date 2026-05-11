@@ -2058,6 +2058,7 @@ class FTable extends FTableEventEmitter {
             // Toolbar search
             toolbarsearch: false, // Enable/disable toolbar search row
             toolbarreset: true,   // Show reset button
+			columnSelectable: true,
             columnSelectButton: false, // Show a column visibility button in the toolbar
             searchDebounceMs: 300, // Debounce time for search input
             
