@@ -18,6 +18,7 @@
     error: 'An error has occured',
     warning: 'Warning',
     close: 'Close',
+    confirm: 'Confirm',
     cannotLoadOptionsFor: 'Cannot load options for field {0}!',
     pagingInfo: 'Showing {0}-{1} of {2}',
     canNotDeletedRecords: 'Can not delete {0} of {1} records!',
@@ -36,7 +37,8 @@
     resetTable: 'Reset table',
     resetTableConfirm: 'This will reset column visibility, column widths and page size to their defaults. Do you want to continue?',
     resetTableTooltip: 'Resets column visibility, column widths and page size to defaults. Sorting is not affected.',
-    resetSearch: 'Reset'
+    resetSearch: 'Reset',
+    columnSelectButton: '⊞ Columns'
 };
 
 class FTableOptionsCache {
@@ -2059,6 +2061,11 @@ class FTable extends FTableEventEmitter {
             // Toolbar search
             toolbarsearch: false, // Enable/disable toolbar search row
             toolbarreset: true,   // Show reset button
+
+            // columns
+            columnResizable: true,
+            columnSelectable: true,
+            columnSelectButton: false, // Show a column visibility button in the toolbar
             searchDebounceMs: 300, // Debounce time for search input
             
             // Caching
@@ -2403,11 +2410,32 @@ class FTable extends FTableEventEmitter {
                 parent: this.elements.mainContainer
             });
 
-            FTableDOMHelper.create('div', {
+            const titleTextDiv = FTableDOMHelper.create('div', {
                 className: 'ftable-title-text',
                 innerHTML: this.options.title,
                 parent: this.elements.titleDiv
             });
+            if (this.options.columnSelectable !== false && this.options.columnSelectButton) {
+                const button = FTableDOMHelper.create('button', {
+                    className: 'ftable-toolbar-item ftable-toolbar-item-column-select',
+                    textContent: this.options.messages.columnSelectButton,
+                    type: 'button',  // Prevent accidental form submission
+                    parent: titleTextDiv
+                });
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const btn = e.currentTarget;
+                    const rect = btn.getBoundingClientRect();
+                    const fakeEvent = {
+                        preventDefault: () => {},
+                        pageX: rect.left + window.scrollX,
+                        pageY: rect.bottom + window.scrollY
+                    };
+                    this.showColumnSelectionMenu(fakeEvent);
+                });
+            }
+
         }
 
         // Toolbar
@@ -3644,6 +3672,26 @@ class FTable extends FTableEventEmitter {
     }
 
     createToolbarButtons() {
+        /*
+        // Column selector button
+        if (this.options.columnSelectable !== false && this.options.columnSelectButton) {
+            this.addToolbarButton({
+                text: this.options.messages.columnSelectButton,
+                className: 'ftable-toolbar-item-column-select',
+                onClick: (e) => {
+                    const btn = e.currentTarget;
+                    const rect = btn.getBoundingClientRect();
+                    const fakeEvent = {
+                        preventDefault: () => {},
+                        pageX: rect.left + window.scrollX,
+                        pageY: rect.bottom + window.scrollY + 4,
+                    };
+                    this.showColumnSelectionMenu(fakeEvent);
+                }
+            });
+        }
+        */
+
         // CSV Export Button
         if (this.options.csvExport) {
             this.addToolbarButton({

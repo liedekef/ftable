@@ -14,7 +14,7 @@ div.ftable-main-container div.ftable-title div.ftable-toolbar {
   display: inline-block;
   margin-right: 5px;
 }
-div.ftable-main-container div.ftable-title div.ftable-toolbar .ftable-toolbar-item {
+div.ftable-main-container div.ftable-title .ftable-toolbar-item {
   position: relative;
   display: inline-block;
   margin: 0px 0px 0px 5px;
@@ -23,14 +23,14 @@ div.ftable-main-container div.ftable-title div.ftable-toolbar .ftable-toolbar-it
   padding: 2px;
   border: none;
 }
-div.ftable-main-container div.ftable-title div.ftable-toolbar .ftable-toolbar-item span.ftable-toolbar-item-icon {
+div.ftable-main-container div.ftable-title .ftable-toolbar-item span.ftable-toolbar-item-icon {
   display: inline-block;
   margin: 2px;
   vertical-align: middle;
   width: 16px;
   height: 16px;
 }
-div.ftable-main-container div.ftable-title div.ftable-toolbar .ftable-toolbar-item span.ftable-toolbar-item-icon.ftable-toolbar-item-add-record {
+div.ftable-main-container div.ftable-title .ftable-toolbar-item span.ftable-toolbar-item-icon.ftable-toolbar-item-add-record {
   display: inline-flex;
   align-items: center;
   background-color: transparent;
@@ -38,11 +38,11 @@ div.ftable-main-container div.ftable-title div.ftable-toolbar .ftable-toolbar-it
   width: 16px;
   height: 16px;
 }
-div.ftable-main-container div.ftable-title div.ftable-toolbar .ftable-toolbar-item span.ftable-toolbar-item-icon.ftable-toolbar-item-add-record::before {
+div.ftable-main-container div.ftable-title .ftable-toolbar-item span.ftable-toolbar-item-icon.ftable-toolbar-item-add-record::before {
   content: "➕";
   font-size: 14px;
 }
-div.ftable-main-container div.ftable-title div.ftable-toolbar .ftable-toolbar-item span.ftable-toolbar-item-text {
+div.ftable-main-container div.ftable-title .ftable-toolbar-item span.ftable-toolbar-item-text {
   display: inline-block;
   margin: 2px;
   vertical-align: middle;
