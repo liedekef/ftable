@@ -2428,7 +2428,7 @@ class FTable extends FTableEventEmitter {
                     const fakeEvent = {
                         preventDefault: () => {},
                         pageX: rect.left + window.scrollX,
-                        pageY: rect.bottom + window.scrollY
+                        pageY: rect.bottom + window.scrollY+1
                     };
                     this.showColumnSelectionMenu(fakeEvent);
                 });
