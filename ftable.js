@@ -3240,81 +3240,10 @@ class FTable extends FTableEventEmitter {
     }
 
     createModals() {
-        // Create modals for different operations
-        if (this.options.actions.createAction) {
-            this.createAddRecordModal();
-        }
-        
-        if (this.options.actions.updateAction) {
-            this.createEditRecordModal();
-        }
-        
-        // delete confirm uses the generic confirm() method — no pre-created modal needed
-
         this.createLoadingModal();
 
         // Initialize them (create DOM) once
         Object.values(this.modals).forEach(modal => modal.create());
-    }
-
-    createAddRecordModal() {
-        this.modals.addRecord = new FtableModal({
-            parent: this.elements.mainContainer,
-            title: this.options.messages.addNewRecord,
-            className: 'ftable-add-modal',
-            closeOnOverlayClick: this.options.closeOnOverlayClick,
-            buttons: [
-                {
-                    text: this.options.messages.cancel,
-                    className: 'ftable-dialog-cancelbutton',
-                    onClick: () => {
-                        this.modals.addRecord.close();
-                        this.emit('formClosed', { form: this.currentForm, formType: 'create', record: null });
-
-						// Verwijder formulier bij cancel
-						if (this.currentForm && this.currentForm.parentNode) {
-							this.currentForm.remove();
-						}
-						this.currentForm = null;
-                    }
-                },
-                {
-                    text: this.options.messages.save,
-                    className: 'ftable-dialog-savebutton',
-                    onClick: () => this.saveNewRecord()
-                }
-            ]
-        });
-    }
-
-    createEditRecordModal() {
-        this.modals.editRecord = new FtableModal({
-            parent: this.elements.mainContainer,
-            title: this.options.messages.editRecord,
-            className: 'ftable-edit-modal',
-            closeOnOverlayClick: this.options.closeOnOverlayClick,
-            buttons: [
-                {
-                    text: this.options.messages.cancel,
-                    className: 'ftable-dialog-cancelbutton',
-                    onClick: () => { 
-                        this.modals.editRecord.close();
-                        this.emit('formClosed', { form: this.currentForm, formType: 'edit', record: null });
-
-						// Verwijder formulier bij cancel
-						if (this.currentForm && this.currentForm.parentNode) {
-							this.currentForm.remove();
-						}
-						this.currentForm = null;
-                    }
-                },
-                {
-                    text: this.options.messages.save,
-                    className: 'ftable-dialog-savebutton',
-                    onClick: () => this.saveEditedRecord()
-                }
-            ]
-        });
     }
 
     createLoadingModal() {
@@ -4282,12 +4211,46 @@ class FTable extends FTableEventEmitter {
     }
 
     // CRUD Operations
-    async showAddRecordForm() {
-        const form = await this.formBuilder.createForm('create');
-        this.modals.addRecord.setContent(form);
-        this.modals.addRecord.show();
+    _openFormModal({ title, className, form, formType, onSave }) {
         this.currentForm = form;
-        this.emit('formCreated', { form: form, formType: 'create', record: null });
+        this.currentModal = new FtableModal({
+            parent             : this.elements.mainContainer,
+            title,
+            className,
+            closeOnOverlayClick: this.options.closeOnOverlayClick,
+            content            : form,
+            onClose: () => {
+                this.emit('formClosed', { form: this.currentForm, formType, record: null });
+                this.currentForm  = null;
+                this.currentModal = null;
+            },
+            buttons: [
+                {
+                    text     : this.options.messages.cancel,
+                    className: 'ftable-dialog-cancelbutton',
+                    onClick  : () => this.currentModal.destroy()
+                },
+                {
+                    text     : this.options.messages.save,
+                    className: 'ftable-dialog-savebutton',
+                    onClick  : onSave
+                }
+            ]
+        });
+        this.currentModal.create();
+        this.currentModal.show();
+    }
+
+    async showAddRecordForm(record = {}) {
+        const form = await this.formBuilder.createForm('create', record);
+        this._openFormModal({
+            title    : this.options.messages.addNewRecord,
+            className: 'ftable-add-modal',
+            formType : 'create',
+            form,
+            onSave   : () => this.saveNewRecord()
+        });
+        this.emit('formCreated', { form, formType: 'create', record: Object.keys(record).length ? record : null });
     }
 
     async saveNewRecord() {
@@ -4295,7 +4258,6 @@ class FTable extends FTableEventEmitter {
 
         // Check validity
         if (!this.currentForm.checkValidity()) {
-            // Triggers browser to show native validation messages
             this.currentForm.reportValidity();
             return;
         }
@@ -4306,21 +4268,11 @@ class FTable extends FTableEventEmitter {
             const result = await this.performCreate(formData);
             
             if (result.Result === 'OK') {
-                this.modals.addRecord.close();
-				
-				// Verwijder het formulier
-				if (this.currentForm && this.currentForm.parentNode) {
-					this.currentForm.remove();
-				}
-				this.currentForm = null;
-
-                // Call formClosed
-                this.emit('formClosed', { form: this.currentForm, formType: 'create', record: null });
-
+                this.currentModal.destroy();  // triggers onClose → clears currentForm + currentModal
                 if (result.Message) {
                     this.showInfo(result.Message);
                 }
-                this.reload(); // Reload to show new record (also clears cache)
+                this.reload();
                 this.emit('recordAdded', { record: result.Record });
             } else {
                 this.showError(result.Message || 'Create failed');
@@ -4334,12 +4286,15 @@ class FTable extends FTableEventEmitter {
     async editRecord(row) {
         const record = row.recordData;
         const form = await this.formBuilder.createForm('edit', record);
-        
-        this.modals.editRecord.setContent(form);
-        this.modals.editRecord.show();
-        this.currentForm = form;
         this.currentEditingRow = row;
-        this.emit('formCreated', { form: form, formType: 'edit', record: record });
+        this._openFormModal({
+            title    : this.options.messages.editRecord,
+            className: 'ftable-edit-modal',
+            formType : 'edit',
+            form,
+            onSave   : () => this.saveEditedRecord()
+        });
+        this.emit('formCreated', { form, formType: 'edit', record });
     }
 
     async saveEditedRecord() {
@@ -4347,7 +4302,6 @@ class FTable extends FTableEventEmitter {
 
         // Check validity
         if (!this.currentForm.checkValidity()) {
-            // Triggers browser to show native validation messages
             this.currentForm.reportValidity();
             return;
         }
@@ -4359,23 +4313,13 @@ class FTable extends FTableEventEmitter {
             
             if (result.Result === 'OK') {
                 this.clearListCache();
-                this.modals.editRecord.close();
-				
-				// Verwijder het formulier
-				if (this.currentForm && this.currentForm.parentNode) {
-					this.currentForm.remove();
-				}
-				this.currentForm = null;
-
-                // Call formClosed
-                this.emit('formClosed', { form: this.currentForm, formType: 'edit', record: this.currentEditingRow.recordData });
-
-                // Update the row with new data
                 this.updateRowData(this.currentEditingRow, result.Record || formData);
+                this.currentModal.destroy();  // triggers onClose → clears currentForm + currentModal
                 if (result.Message) {
                     this.showInfo(result.Message);
                 }
                 this.emit('recordUpdated', { record: result.Record || formData, row: this.currentEditingRow });
+                this.currentEditingRow = null;
             } else {
                 this.showError(result.Message || 'Update failed');
             }
@@ -4387,19 +4331,10 @@ class FTable extends FTableEventEmitter {
 
     async cloneRecord(row) {
         const record = { ...row.recordData };
-
-        // Clear key field to allow creation
         if (this.keyField) {
             record[this.keyField] = '';
         }
-
-        const form = await this.formBuilder.createForm('create', record);
-        this.modals.addRecord.options.content = form;
-        this.modals.addRecord.setContent(form);
-        this.modals.addRecord.show();
-
-        this.currentForm = form;
-        this.emit('formCreated', { form: form, formType: 'create', record: record });
+        return this.showAddRecordForm(record);
     }
 
     async deleteRows( keys ) {
