@@ -68,6 +68,7 @@ div.ftable-main-container div.ftable-title .ftable-toolbar-item {
   margin: 0px 0px 0px 5px;
   cursor: pointer;
   font-size: 0.9em;
+  font-weight: normal;
   padding: 2px;
   border: none;
 }

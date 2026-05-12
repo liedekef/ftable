@@ -478,11 +478,13 @@ class FtableModal {
         });
 
         // Header
-        const header = FTableDOMHelper.create('h2', {
-            className: 'ftable-modal-header',
-            textContent: this.options.title,
-            parent: this.modal
-        });
+        if (this.options.title) {
+            FTableDOMHelper.create('h2', {
+                className: 'ftable-modal-header',
+                textContent: this.options.title,
+                parent: this.modal
+            });
+        }
 
         // Close button
         const closeBtn = FTableDOMHelper.create('span', {
@@ -2259,11 +2261,17 @@ class FTable extends FTableEventEmitter {
                 type: 'button',
                 parent: this.elements.rightArea
             });
-            resetTableBtn.addEventListener('click', (e) => {
+            resetTableBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                const msg = this.options.messages.resetTableConfirm;
-                this.modals.resetTable.setContent(`<p>${msg}</p>`);
-                this.modals.resetTable.show();
+                const ok = await this.confirm(
+                    this.options.messages.resetTable,
+                    this.options.messages.resetTableConfirm,
+                    { confirmText: this.options.messages.yes }
+                );
+                if (!ok) return;
+                this.userPrefs.remove('column-settings');
+                this.userPrefs.set('table-state', JSON.stringify({ sorting: this.state.sorting }));
+                location.reload();
             });
         }
 
@@ -3241,14 +3249,7 @@ class FTable extends FTableEventEmitter {
         
         // delete confirm uses the generic confirm() method — no pre-created modal needed
 
-        this.createErrorModal();
-        this.createWarningModal();
-        this.createInfoModal();
         this.createLoadingModal();
-
-        if (this.options.tableResetButton) {
-            this.createResetTableModal();
-        }
 
         // Initialize them (create DOM) once
         Object.values(this.modals).forEach(modal => modal.create());
@@ -3309,82 +3310,6 @@ class FTable extends FTableEventEmitter {
                     text: this.options.messages.save,
                     className: 'ftable-dialog-savebutton',
                     onClick: () => this.saveEditedRecord()
-                }
-            ]
-        });
-    }
-
-    createResetTableModal() {
-        this.modals.resetTable = new FtableModal({
-            parent: this.elements.mainContainer,
-            title: this.options.messages.resetTable || 'Reset table',
-            className: 'ftable-reset-table-modal',
-            closeOnOverlayClick: this.options.closeOnOverlayClick,
-            buttons: [
-                {
-                    text: this.options.messages.cancel,
-                    className: 'ftable-dialog-cancelbutton',
-                    onClick: () => this.modals.resetTable.close()
-                },
-                {
-                    text: this.options.messages.yes,
-                    className: 'ftable-dialog-savebutton',
-                    onClick: () => {
-                        this.userPrefs.remove('column-settings');
-                        // Preserve current sorting, only reset column settings and pageSize
-                        this.userPrefs.set('table-state', JSON.stringify({
-                            sorting: this.state.sorting
-                        }));
-                        location.reload();
-                    }
-                }
-            ]
-        });
-    }
-
-    createErrorModal() {
-        this.modals.error = new FtableModal({
-            parent: this.elements.mainContainer,
-            title: this.options.messages.error,
-            className: 'ftable-error-modal',
-            closeOnOverlayClick: this.options.closeOnOverlayClick,
-            buttons: [
-                {
-                    text: this.options.messages.close,
-                    className: 'ftable-dialog-closebutton',
-                    onClick: () => this.modals.error.close()
-                }
-            ]
-        });
-    }
-
-    createWarningModal() {
-        this.modals.warning = new FtableModal({
-            parent: this.elements.mainContainer,
-            title: this.options.messages.warning,
-            className: 'ftable-warning-modal',
-            closeOnOverlayClick: this.options.closeOnOverlayClick,
-            buttons: [
-                {
-                    text: this.options.messages.close,
-                    className: 'ftable-dialog-closebutton',
-                    onClick: () => this.modals.warning.close()
-                }
-            ]
-        });
-    }
-
-    createInfoModal() {
-        this.modals.info = new FtableModal({
-            parent: this.elements.mainContainer,
-            title: '',
-            className: 'ftable-info-modal',
-            closeOnOverlayClick: this.options.closeOnOverlayClick,
-            buttons: [
-                {
-                    text: this.options.messages.close,
-                    className: 'ftable-dialog-closebutton',
-                    onClick: () => this.modals.info.close()
                 }
             ]
         });
@@ -3461,6 +3386,60 @@ class FTable extends FTableEventEmitter {
                         text      : options.confirmText          || FTABLE_DEFAULT_MESSAGES.confirm || 'Confirm',
                         className : options.confirmClassName     || 'ftable-dialog-confirmbutton',
                         onClick   : () => done( true ),
+                    },
+                ],
+            } );
+            modal.create();
+            modal.show();
+        } );
+    }
+
+    /**
+     * Show an alert dialog and return a Promise that resolves when dismissed.
+     * Delegates to FTable.alert(), enriching options with instance defaults.
+     *
+     * @param {string} title             - Modal title (pass '' for no title)
+     * @param {string} message           - Modal body (HTML allowed)
+     * @param {object} [options={}]      - Override any FTable.alert() option
+     * @returns {Promise<void>}
+     */
+    alert( title, message, options = {} ) {
+        return FTable.alert( title, message, {
+            parent             : this.elements.mainContainer,
+            closeOnOverlayClick: this.options.closeOnOverlayClick,
+            closeText          : this.options.messages.close,
+            ...options,
+        } );
+    }
+
+    /**
+     * Static version — usable without an FTable instance.
+     *
+     * @param {string} title                        - Modal title (pass '' for no title)
+     * @param {string} message                      - Modal body (HTML allowed)
+     * @param {object} [options={}]
+     * @param {Element} [options.parent]            - DOM parent for the modal (default: document.body)
+     * @param {string}  [options.closeText]         - Close button label          (default: 'Close')
+     * @param {string}  [options.buttonClassName]   - Close button CSS class      (default: 'ftable-dialog-closebutton')
+     * @param {string}  [options.className]         - Modal CSS class             (default: 'ftable-alert-modal')
+     * @param {boolean} [options.closeOnOverlayClick] - Close on backdrop click   (default: true)
+     * @returns {Promise<void>}
+     */
+    static alert( title, message, options = {} ) {
+        return new Promise( ( resolve ) => {
+            const done = () => { modal.destroy(); resolve(); };
+            const modal = new FtableModal( {
+                parent             : options.parent              || document.body,
+                title,
+                content            : `<p>${message}</p>`,
+                className          : options.className           || 'ftable-alert-modal',
+                closeOnOverlayClick: options.closeOnOverlayClick ?? true,
+                onClose            : () => done(),
+                buttons            : [
+                    {
+                        text     : options.closeText             || FTABLE_DEFAULT_MESSAGES.close || 'Close',
+                        className: options.buttonClassName       || 'ftable-dialog-closebutton',
+                        onClick  : () => done(),
                     },
                 ],
             } );
@@ -5074,30 +5053,21 @@ class FTable extends FTableEventEmitter {
     }
 
     showError(message) {
-        if (this.modals.error) {
-            this.modals.error.setContent(message);
-            this.modals.error.show();
-        } else {
-            alert(message); // Fallback
-        }
+        return this.alert(this.options.messages.error, message, {
+            className: 'ftable-error-modal'
+        });
     }
 
     showWarning(message) {
-        if (this.modals.warning) {
-            this.modals.warning.setContent(message);
-            this.modals.warning.show();
-        } else {
-            alert(message); // Fallback
-        }
+        return this.alert(this.options.messages.warning, message, {
+            className: 'ftable-warning-modal'
+        });
     }
 
     showInfo(message) {
-        if (this.modals.info) {
-            this.modals.info.setContent(message);
-            this.modals.info.show();
-        } else {
-            alert(message); // Fallback
-        }
+        return this.alert('', message, {
+            className: 'ftable-info-modal'
+        });
     }
 
     // Public API Methods
