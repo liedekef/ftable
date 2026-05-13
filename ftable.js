@@ -2292,6 +2292,7 @@ class FTable extends FTableEventEmitter {
 
         const select = FTableDOMHelper.create('select', {
             className: 'ftable-page-size-select',
+            id: 'ftable-page-size-select',
             parent: container
         });
 
@@ -4221,6 +4222,7 @@ class FTable extends FTableEventEmitter {
             content            : form,
             onClose: () => {
                 this.emit('formClosed', { form: this.currentForm, formType, record: null });
+                this.currentModal.destroy();
                 this.currentForm  = null;
                 this.currentModal = null;
             },
