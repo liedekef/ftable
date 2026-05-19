@@ -33,7 +33,7 @@
   "homepage": "https://github.com/liedekef/ftable#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/liedekef/ftable.git"
+    "url": "git+https://github.com/liedekef/ftable.git"
   },
   "bugs": {
     "url": "https://github.com/liedekef/ftable/issues"

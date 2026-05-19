@@ -2672,48 +2672,28 @@ class FTable extends FTableEventEmitter {
                     case 'datetime':
                     case 'datetime-local':
                         if (typeof FDatepicker !== 'undefined') {
-                            const dateFormat = field.searchDateFormat || field.dateFormat || this.options.defaultDateFormat;
-                            const containerDiv = document.createElement('div');
-                            const visibleInput = FTableDOMHelper.create('input', {
+                            input = FTableDOMHelper.create('input', {
                                 className: 'ftable-toolbarsearch',
                                 id: 'ftable-toolbarsearch-' + fieldName,
                                 type: 'text',
                                 placeholder: field.searchPlaceholder || field.placeholder || '',
                                 readOnly: true,
                             });
-                            containerDiv.appendChild(visibleInput);
+                            container.appendChild(input);
 
                             // After FDatepicker initialises it auto-creates a hidden field with
                             // id = visibleInput.id + '-fdp-alt'. We set data-field-name on that
                             // hidden field so the existing handleSearchInputChange picks up the
                             // altFormat value (e.g. Y-m-d) instead of the display value.
-                            switch (searchType) {
-                                case 'date':
-                                    setTimeout(() => {
-                                        new FDatepicker(visibleInput, {
-                                            format: dateFormat,
-                                            altFormat: 'Y-m-d',
-                                            autoClose: true
-                                        });
-                                        const hiddenField = document.getElementById(visibleInput.id + '-fdp-alt');
-                                        if (hiddenField) hiddenField.setAttribute('data-field-name', fieldName);
-                                    }, 0);
-                                    break;
-                                case 'datetime':
-                                case 'datetime-local':
-                                    setTimeout(() => {
-                                        new FDatepicker(visibleInput, {
-                                            format: dateFormat,
-                                            timepicker: true,
-                                            altFormat: 'Y-m-d H:i:00'
-                                        });
-                                        const hiddenField = document.getElementById(visibleInput.id + '-fdp-alt');
-                                        if (hiddenField) hiddenField.setAttribute('data-field-name', fieldName);
-                                    }, 0);
-                                    break;
-                            }
-                            input = containerDiv;
-
+                            const dateFormat = field.searchDateFormat || field.dateFormat || this.options.defaultDateFormat;
+                            new FDatepicker(input, {
+                                format: dateFormat,
+                                altFormat: searchType === 'date' ? 'Y-m-d' : 'Y-m-d H:i:00',
+                                timepicker: searchType !== 'date',
+                                autoClose: searchType === 'date'
+                            });
+                            const hiddenField = document.getElementById(input.id + '-fdp-alt');
+                            if (hiddenField) hiddenField.setAttribute('data-field-name', fieldName);
                         } else {
                             input = FTableDOMHelper.create('input', {
                                 className: 'ftable-toolbarsearch',
@@ -2723,6 +2703,7 @@ class FTable extends FTableEventEmitter {
                                     'data-field-name': fieldName,
                                 }
                             });
+                            container.appendChild(input);
                         }
                         break;
 
@@ -2731,6 +2712,7 @@ class FTable extends FTableEventEmitter {
                             field.values = { '0' : this.options.messages.no, '1' : this.options.messages.yes }
                         }
                         input = await this.createSelectForSearch(fieldName, field, true);
+                        container.appendChild(input);
                         break;
 
                     case 'select':
@@ -2747,10 +2729,15 @@ class FTable extends FTableEventEmitter {
                                 }
                             });
                         }
+                        container.appendChild(input);
                         break;
 
                     case 'datalist':
                         input = await this.createDatalistForSearch(fieldName, field);
+                        container.appendChild(input);
+                        if (input.datalistElement && input.datalistElement instanceof Node) {
+                            container.appendChild(input.datalistElement);
+                        }
                         break;
 
                     default:
@@ -2763,19 +2750,19 @@ class FTable extends FTableEventEmitter {
                                 'data-field-name': fieldName
                             }
                         });
+                        container.appendChild(input);
                 }
 
                 if (input) {
-                    container.appendChild(input);
-                    if (input.datalistElement && input.datalistElement instanceof Node) {
-                        container.appendChild(input.datalistElement);
-                    }
-
                     // Handle event listeners - check if it's a custom multiselect container
                     let targetElement = input;
                     if (input.classList && input.classList.contains('ftable-multiselect-container') && input.hiddenSelect) {
                         // It's a custom multiselect - attach listener to the hidden select
                         targetElement = input.hiddenSelect;
+                    } else if (input._fdatepicker) {
+                        // FDatepicker: listen on the auto-created hidden alt field
+                        const hiddenField = document.getElementById(input.id + '-fdp-alt');
+                        if (hiddenField) targetElement = hiddenField;
                     }
 
                     if (targetElement.tagName === 'SELECT') {
@@ -3013,6 +3000,9 @@ class FTable extends FTableEventEmitter {
                 input.selectedIndex = 0; // Select the first (empty) option
             } else {
                 input.value = '';
+                if (input._fdatepicker) {
+                    input._fdatepicker.clear();
+                }
             }
         });
 
@@ -3024,6 +3014,7 @@ class FTable extends FTableEventEmitter {
             }
         });
 
+        clearTimeout(this.searchTimeout); // cancel any pending debounced loads
         // Reload data without search parameters
         this.load();
     }
