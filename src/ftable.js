@@ -2057,6 +2057,9 @@ class FTable extends FTableEventEmitter {
             selecting: false,
             multiselect: false,
 
+            // Reorder
+            reorder: false,
+
             // child tables
             openChildAsAccordion: false,
 
@@ -2069,7 +2072,6 @@ class FTable extends FTableEventEmitter {
             columnSelectable: true,
             columnSelectButton: false, // Show a column visibility button in the toolbar
             searchDebounceMs: 300, // Debounce time for search input
-            columnReorder: true,
             
             // Caching
             listCache: 30000, // or listCache: 30000 (duration in ms)
@@ -3636,7 +3638,7 @@ class FTable extends FTableEventEmitter {
             FTableDOMHelper.hide(this.elements.sortingResetBtn); // hidden by default
         }
         // Order reset button — visible only when sorting differs from default
-        if (this.options.columnReorder && this.options.orderResetButton) {
+        if (this.options.reorder && this.options.orderResetButton) {
             this.elements.orderResetBtn = this.addToolbarButton({
                 text: this.options.messages.resetOrder || 'Reset order',
                 className: 'ftable-toolbar-item-order-reset',
@@ -5655,7 +5657,7 @@ class FTable extends FTableEventEmitter {
 
     // Column reordering methods
     enableColumnReorder() {
-        if (this.options.columnReorder === false) return;
+        if (this.options.reorder === false) return;
 
         this.setupDragAndDrop();
 
