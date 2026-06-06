@@ -578,6 +578,27 @@ div.ftable-column-selection-container ul.ftable-column-select-list li input[type
   margin-top: 5px;
   line-height: 1;
 }
+/* Column reordering styles */
+.ftable th[draggable="true"] {
+  user-select: none;
+  cursor: grab;
+}
+.ftable th[draggable="true"]:active {
+  cursor: grabbing;
+}
+.ftable th.ftable-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+.ftable th.ftable-drag-over-left {
+  border-left: 3px solid #2196F3 !important;
+}
+.ftable th.ftable-drag-over-right {
+  border-right: 3px solid #2196F3 !important;
+}
+.ftable th.ftable-drag-over {
+  background-color: rgba(33, 150, 243, 0.1);
+}
 div.ftable-main-container {
   font-family: Verdana, Arial, Helvetica, sans-serif;
   font-size: 1em;

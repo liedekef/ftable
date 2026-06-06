@@ -30,6 +30,7 @@ const FTABLE_DEFAULT_MESSAGES = {
     descending: 'Descending',
     sortingInfoNone: 'No sorting applied',
     resetSorting: 'Reset sorting',
+    resetOrder: 'Reset order',
     csvExport: 'CSV',
     printTable: '🖨️ Print',
     cloneRecord: 'Clone Record',
@@ -2038,6 +2039,7 @@ class FTable extends FTableEventEmitter {
             defaultSorting: '',
             tableResetButton: false,
             sortingResetButton: false,
+            orderResetButton: false,
             
             // Paging
             paging: false,
@@ -2068,6 +2070,7 @@ class FTable extends FTableEventEmitter {
             columnSelectable: true,
             columnSelectButton: false, // Show a column visibility button in the toolbar
             searchDebounceMs: 300, // Debounce time for search input
+            columnReorder: true,
             
             // Caching
             listCache: 30000, // or listCache: 30000 (duration in ms)
@@ -2137,6 +2140,9 @@ class FTable extends FTableEventEmitter {
 
         // now make sure all tables have a % width
         this.initColumnWidths();
+
+        // Enable column reordering after table is built
+        this.enableColumnReorder();
     }
 
     initColumnWidths() {
@@ -2354,6 +2360,7 @@ class FTable extends FTableEventEmitter {
             const field = this.options.fields[name];
             return field.list !== false;
         });
+        this._defaultColumnList = [...this.columnList];
 
         // Track which actions are user-placed (via action columns in fields)
         this._userPlacedActions = new Set(
@@ -3629,6 +3636,18 @@ class FTable extends FTableEventEmitter {
             });
             FTableDOMHelper.hide(this.elements.sortingResetBtn); // hidden by default
         }
+        // Order reset button — visible only when sorting differs from default
+        if (this.options.columnReorder && this.options.orderResetButton) {
+            this.elements.orderResetBtn = this.addToolbarButton({
+                text: this.options.messages.resetOrder || 'Reset order',
+                className: 'ftable-toolbar-item-order-reset',
+                onClick: () => {
+                    this.resetColumnOrder();
+                    this.load();
+                }
+            });
+            FTableDOMHelper.hide(this.elements.orderResetBtn); // hidden by default
+        }
 
         if (this.options.actions.createAction) {
             this.addToolbarButton({
@@ -3739,6 +3758,7 @@ class FTable extends FTableEventEmitter {
             // Load saved column settings
             this.loadState();
             this.loadColumnSettings();
+            this.loadColumnOrder();
         }
     }
 
@@ -4747,6 +4767,14 @@ class FTable extends FTableEventEmitter {
             FTableDOMHelper.show(this.elements.sortingResetBtn);
         }
     }
+    _updateOrderResetButton() {
+        if (!this.elements.orderResetBtn) return;
+        const isDifferent = this.columnList.length !== this._defaultColumnList.length ||
+                            this.columnList.some((field, i) => field !== this._defaultColumnList[i]);
+        isDifferent
+            ? FTableDOMHelper.show(this.elements.orderResetBtn)
+            : FTableDOMHelper.hide(this.elements.orderResetBtn);
+    }
 
     // Paging Methods
     updatePagingInfo() {
@@ -5624,6 +5652,195 @@ class FTable extends FTableEventEmitter {
         return new Promise((resolve) => {
             FTable._waitForFieldReady(fieldName, form, resolve, timeout);
         });
+    }
+
+    // Column reordering methods
+    enableColumnReorder() {
+        if (this.options.columnReorder === false) return;
+
+        this.setupDragAndDrop();
+
+        const orderJson = this.userPrefs.get('column-order');
+        if (orderJson) {
+            this._updateOrderResetButton();
+        }
+    }
+
+    setupDragAndDrop() {
+        const thead = this.elements.table.querySelector('thead');
+        const headers = Array.from(thead.querySelectorAll('th:not(.ftable-command-column-header)'));
+        let dragSourceField = null;
+        let dragSourceElement = null;
+
+        headers.forEach(header => {
+            header.setAttribute('draggable', 'true');
+            header.style.cursor = 'grab';
+
+            header.addEventListener('dragstart', (e) => {
+                dragSourceField = header.getAttribute('data-field-name');
+                dragSourceElement = header;
+                e.dataTransfer.setData('text/plain', dragSourceField);
+                e.dataTransfer.effectAllowed = 'move';
+                header.style.cursor = 'grabbing';
+                header.classList.add('ftable-dragging');
+            });
+
+            header.addEventListener('dragend', (e) => {
+                headers.forEach(h => {
+                    h.classList.remove('ftable-drag-over', 'ftable-drag-over-left', 'ftable-drag-over-right', 'ftable-dragging');
+                    h.style.cursor = 'grab';
+                });
+                dragSourceField = null;
+                dragSourceElement = null;
+            });
+
+            header.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+
+                if (dragSourceField === header.getAttribute('data-field-name')) return;
+
+                const rect = header.getBoundingClientRect();
+                const mouseX = e.clientX;
+                const isAfter = mouseX > rect.left + rect.width / 2;
+
+                headers.forEach(h => h.classList.remove('ftable-drag-over', 'ftable-drag-over-left', 'ftable-drag-over-right'));
+
+                if (isAfter) {
+                    header.classList.add('ftable-drag-over-right');
+                } else {
+                    header.classList.add('ftable-drag-over-left');
+                }
+            });
+
+            header.addEventListener('drop', (e) => {
+                e.preventDefault();
+
+                if (!dragSourceField) return;
+
+                const targetField = header.getAttribute('data-field-name');
+                if (dragSourceField === targetField) return;
+
+                const rect = header.getBoundingClientRect();
+                const isAfter = e.clientX > rect.left + rect.width / 2;
+
+                this.reorderColumnsByName(dragSourceField, targetField, isAfter);
+
+                headers.forEach(h => h.classList.remove('ftable-drag-over', 'ftable-drag-over-left', 'ftable-drag-over-right'));
+            });
+        });
+    }
+
+    reorderColumnsByName(sourceField, targetField, insertAfter = false) {
+        if (sourceField === targetField) return;
+
+        // find index in columnList
+        const sourceIndex = this.columnList.indexOf(sourceField);
+        let targetIndex = this.columnList.indexOf(targetField);
+
+        if (sourceIndex === -1 || targetIndex === -1) return;
+
+        // if we need to insert after target, increase index
+        if (insertAfter) {
+            targetIndex++;
+        }
+
+        let adjustedTargetIndex = targetIndex;
+        if (sourceIndex < targetIndex) {
+            adjustedTargetIndex = targetIndex - 1;
+        }
+
+        // Move in columnList
+        const [movedColumn] = this.columnList.splice(sourceIndex, 1);
+        this.columnList.splice(adjustedTargetIndex, 0, movedColumn);
+
+        // Reorder all rows in the DOM
+        this.reorderDomColumns();
+
+        // Bewaar de nieuwe volgorde
+        if (this.options.saveUserPreferences) {
+            this.saveColumnOrder();
+        }
+
+        this._updateOrderResetButton();
+        // Trigger event
+        this.emit('columnsReordered', {
+            sourceField,
+            targetField,
+            insertAfter,
+            columnList: [...this.columnList]
+        });
+    }
+
+    reorderDomColumns() {
+        const rows = this.elements.table.querySelectorAll('tr');
+
+        rows.forEach(row => {
+            const cells = Array.from(row.children);
+            const reorderedCells = [];
+
+            const dataCells = cells.filter(cell => cell.hasAttribute('data-field-name'));
+            const commandCells = cells.filter(cell => !cell.hasAttribute('data-field-name'));
+
+            // reorder data columns according to columnList
+            this.columnList.forEach(fieldName => {
+                const cell = dataCells.find(cell => cell.getAttribute('data-field-name') === fieldName);
+                if (cell) {
+                    reorderedCells.push(cell);
+                }
+            });
+
+            // add command columns in the right place
+            commandCells.forEach(cell => {
+                // the select column
+                const isSelectColumn = cell.classList.contains('ftable-column-header-select') || cell.classList.contains('ftable-selecting-column');
+                if (isSelectColumn) {
+                    // Select column goes to the left
+                    reorderedCells.unshift(cell);
+                } else {
+                    // other data columns to the right
+                    reorderedCells.push(cell);
+                }
+            });
+
+            // apply the new order
+            reorderedCells.forEach(cell => row.appendChild(cell));
+        });
+    }
+
+    saveColumnOrder() {
+        const order = [...this.columnList];
+        this.userPrefs.set('column-order', JSON.stringify(order));
+    }
+
+    loadColumnOrder() {
+        if (!this.options.saveUserPreferences) return;
+
+        const orderJson = this.userPrefs.get('column-order');
+        if (!orderJson) return;
+
+        try {
+            const savedOrder = JSON.parse(orderJson);
+            // Reuse it only if all columns are still present and existing
+            if (savedOrder.length === this.columnList.length &&
+                savedOrder.every(field => this.columnList.includes(field))) {
+                this.columnList = savedOrder;
+                this._updateOrderResetButton();
+            }
+        } catch (error) {
+            this.logger.warn('Failed to load column order:', error);
+        }
+    }
+
+    resetColumnOrder() {
+        // Reset columnList to default
+        this.columnList = [...this._defaultColumnList];
+
+        if (this.options.saveUserPreferences) {
+            this.userPrefs.remove('column-order');
+        }
+        this.reorderDomColumns();
+        this._updateOrderResetButton();
     }
 }
 
