@@ -20,8 +20,9 @@ FTable is a clean, vanilla JavaScript rewrite of the popular `jTable` plugin, de
 ✅ Sorting, Paging, Filtering  
 ✅ Dynamic dependent fields  
 ✅ Ajax loading for data and options  
-✅ Localization via JTable.setMessages(...)  
+✅ Localization via fTable.setMessages(...)  
 ✅ Modal forms  
+✅ Column visibility, resize and reorder  
 ✅ CSV export, Print  
 ✅ User preferences (localStorage)  
 
