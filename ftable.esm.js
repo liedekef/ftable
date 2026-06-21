@@ -2039,7 +2039,7 @@ class FTable extends FTableEventEmitter {
             defaultSorting: '',
             tableResetButton: false,
             sortingResetButton: false,
-            orderResetButton: false,
+            orderResetButton: true,
             
             // Paging
             paging: false,
@@ -4404,15 +4404,14 @@ class FTable extends FTableEventEmitter {
                 row                : row,
                 record             : record,
                 deleteConfirmMessage: deleteConfirmMessage,
-                cancel             : false,
-                cancelMessage      : this.options.messages.cancel
+                cancel             : false
             };
             this.options.deleteConfirmation( data );
 
             // Respect cancellation
             if ( data.cancel ) {
                 if ( data.cancelMessage ) {
-                    this.showError( data.cancelMessage );
+                    this.showInfo( data.cancelMessage );
                 }
                 return;
             }
@@ -5779,34 +5778,26 @@ class FTable extends FTableEventEmitter {
 
         rows.forEach(row => {
             const cells = Array.from(row.children);
-            const reorderedCells = [];
 
-            const dataCells = cells.filter(cell => cell.hasAttribute('data-field-name'));
-            const commandCells = cells.filter(cell => !cell.hasAttribute('data-field-name'));
+            // Collect the data cells in the new columnList order
+            const reorderedDataCells = this.columnList
+                .map(fieldName => cells.find(cell => cell.getAttribute('data-field-name') === fieldName))
+                .filter(Boolean);
 
-            // reorder data columns according to columnList
-            this.columnList.forEach(fieldName => {
-                const cell = dataCells.find(cell => cell.getAttribute('data-field-name') === fieldName);
-                if (cell) {
-                    reorderedCells.push(cell);
-                }
-            });
+            // Place them in order, each after the previous one,
+            // leaving non-data cells (command columns) untouched in their current position
+            const firstDataCell = cells.find(cell => cell.hasAttribute('data-field-name'));
+            if (!firstDataCell) return;
 
-            // add command columns in the right place
-            commandCells.forEach(cell => {
-                // the select column
-                const isSelectColumn = cell.classList.contains('ftable-column-header-select') || cell.classList.contains('ftable-selecting-column');
-                if (isSelectColumn) {
-                    // Select column goes to the left
-                    reorderedCells.unshift(cell);
+            let anchor = firstDataCell.previousSibling; // could be null (= prepend)
+            reorderedDataCells.forEach(cell => {
+                if (anchor) {
+                    anchor.after(cell);
                 } else {
-                    // other data columns to the right
-                    reorderedCells.push(cell);
+                    row.prepend(cell);
                 }
+                anchor = cell;
             });
-
-            // apply the new order
-            reorderedCells.forEach(cell => row.appendChild(cell));
         });
     }
 

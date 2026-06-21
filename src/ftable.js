@@ -4403,7 +4403,8 @@ class FTable extends FTableEventEmitter {
                 row                : row,
                 record             : record,
                 deleteConfirmMessage: deleteConfirmMessage,
-                cancel             : false
+                cancel             : false,
+                cancelMessage      : ''
             };
             this.options.deleteConfirmation( data );
 
