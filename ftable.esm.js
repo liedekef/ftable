@@ -2504,6 +2504,7 @@ class FTable extends FTableEventEmitter {
                     attributes: { type: 'checkbox' },
                     parent: selectHeader
                 });
+                this.elements.selectAllCheckbox = selectAllCheckbox;
 
                 selectAllCheckbox.addEventListener('change', () => {
                     this.toggleSelectAll(selectAllCheckbox.checked);
@@ -2536,6 +2537,7 @@ class FTable extends FTableEventEmitter {
                         attributes: { type: 'checkbox' },
                         parent: th
                     });
+                    this.elements.selectAllCheckbox = selectAllCheckbox;
                     selectAllCheckbox.addEventListener('change', () => {
                         this.toggleSelectAll(selectAllCheckbox.checked);
                     });
@@ -3908,11 +3910,20 @@ class FTable extends FTableEventEmitter {
         this.state.records = data.Records || [];
         this.state.totalRecordCount = data.TotalRecordCount || this.state.records.length;
 
-        // If the current page is out of range but records exist, reset to page 1 and reload.
-        // This can happen when listQueryParams changes while the user is on a later page.
+        // If the current page is out of range but records exist (e.g. the last row(s) on this
+        // page were just deleted via ajax), jump to the last valid page based on TotalRecordCount
+        // and reload. This can also happen when listQueryParams changes while the user is on a
+        // later page. Fall back to page 1 if, for whatever reason, the current page is still valid
+        // yet no records were returned.
         if (this.options.paging && this.state.records.length === 0 && this.state.totalRecordCount > 0) {
-            this.state.currentPage = 1;
-            this.load();
+            const totalPages = Math.max(1, Math.ceil(this.state.totalRecordCount / this.state.pageSize));
+            this.state.currentPage = this.state.currentPage > totalPages ? totalPages : 1;
+            // processLoadedData() runs synchronously from within load()'s try block, so
+            // this.state.isLoading is still true here — calling this.load() directly would
+            // hit the reentrancy guard at the top of load() and silently no-op, leaving the
+            // stale page rendered. Defer until the current load() call has fully unwound
+            // (its finally block resets isLoading).
+            setTimeout(() => this.load(), 0);
             return;
         }
 
@@ -3924,6 +3935,12 @@ class FTable extends FTableEventEmitter {
         // Clear existing data rows
         const dataRows = this.elements.tableBody.querySelectorAll('.ftable-data-row');
         dataRows.forEach(row => row.remove());
+
+        // The select-all checkbox lives in the header and is created once, so it doesn't
+        // automatically follow row changes (e.g. after a delete + reload). Reset it here.
+        if (this.elements.selectAllCheckbox) {
+            this.elements.selectAllCheckbox.checked = false;
+        }
 
         if (this.state.records.length === 0) {
             this.addNoDataRow();
