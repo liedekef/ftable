@@ -38,7 +38,8 @@ const FTABLE_DEFAULT_MESSAGES = {
     resetTableConfirm: 'This will reset column visibility, column widths and page size to their defaults. Do you want to continue?',
     resetTableTooltip: 'Resets column visibility, column widths and page size to defaults. Sorting is not affected.',
     resetSearch: 'Reset',
-    columnSelectButton: '⊞ Columns'
+    columnSelectButton: '⊞ Columns',
+    pleaseWait: 'Please wait...'
 };
 
 class FTableOptionsCache {
@@ -2058,6 +2059,9 @@ class FTable extends FTableEventEmitter {
             selecting: false,
             multiselect: false,
 
+            // Bulk actions (select dropdown + apply button acting on selected rows)
+            bulkActions: false,
+
             // Reorder
             reorder: false,
 
@@ -3388,6 +3392,7 @@ class FTable extends FTableEventEmitter {
         // Add toolbar buttons
         this.createCustomToolbarItems();
         this.createToolbarButtons();
+        this.setupBulkActions();
         
         // Keyboard shortcuts
         this.bindKeyboardEvents();
@@ -3413,6 +3418,8 @@ class FTable extends FTableEventEmitter {
             'recordUpdated', // { record: result.Record || formData }
             'recordDeleted', // { record: row.recordData }
             'selectionChanged', // { selectedRows: this.getSelectedRows() }
+            'bulkActionComplete', // { data, doAction, ids, selectedRows }
+            'bulkActionError', // { error, doAction, ids, selectedRows }
             //'bulkDelete', // NOT USEFULL { results: results, successful: successfulDeletes.length, failed: failed }
             //'columnVisibilityChanged', // NOT USEFULL { field: field }
         ];
@@ -3737,6 +3744,122 @@ class FTable extends FTableEventEmitter {
                 onClick: typeof item.click === 'function' ? item.click : null
             });
         });
+    }
+
+    /**
+     * Wires up an existing "bulk actions" <select> + button (rendered by the page,
+     * e.g. server-side so translations stay where they belong) to the common flow:
+     * requires a selection + a chosen action, optional confirmation, disables the
+     * button while the request runs, posts the selected record keys, then reloads.
+     *
+     * options.bulkActions = {
+     *   select: '#eme_admin_action',      // CSS selector or Element, already in the DOM
+     *   button: '#LocationsActionsButton',// CSS selector or Element, already in the DOM
+     *   idField: 'location_id',           // form field name the joined ids get posted under (default: 'ids')
+     *   action: ajaxurl,                  // string URL (FTableHttpClient.post) or a function(data, ctx)
+     *   confirmActions: ['deleteLocations'],  // or a function(doAction) => bool
+     *   confirmTitle / confirmMessage: '',    // fallback confirm text
+     *   extraData: {} | (ctx) => {},      // merged into the posted data (e.g. nonce, static action name)
+     *   visibleWhen: { '#span_transferto': ['trashLocations', 'deleteLocations'] },
+     *   handlers: { sendMails: (ctx) => {...} } // per-action full override, bypasses the ajax flow entirely
+     * }
+     *
+     * ctx passed to extraData/handlers is { doAction, ids, selectedRows, table }.
+     */
+    setupBulkActions() {
+        const cfg = this.options.bulkActions;
+        if (!cfg) return;
+
+        this.elements.bulkActionSelect = typeof cfg.select === 'string' ? document.querySelector(cfg.select) : cfg.select;
+        this.elements.bulkActionButton = typeof cfg.button === 'string' ? document.querySelector(cfg.button) : cfg.button;
+
+        if (!this.elements.bulkActionSelect || !this.elements.bulkActionButton) {
+            this.logger.warn('bulkActions: select and/or button element not found in the DOM');
+            return;
+        }
+
+        const updateVisibility = () => {
+            if (!cfg.visibleWhen) return;
+            const doAction = this.elements.bulkActionSelect.value;
+            Object.entries(cfg.visibleWhen).forEach(([selector, allowedActions]) => {
+                const el = document.querySelector(selector);
+                if (el) FTableDOMHelper[allowedActions.includes(doAction) ? 'show' : 'hide'](el);
+            });
+        };
+
+        this.elements.bulkActionSelect.addEventListener('change', updateVisibility);
+        updateVisibility();
+
+        this.elements.bulkActionButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.runBulkAction();
+        });
+    }
+
+    async runBulkAction() {
+        const cfg = this.options.bulkActions;
+        const selectedRows = this.getSelectedRows();
+        const doAction = this.elements.bulkActionSelect.value;
+        if (selectedRows.length === 0 || !doAction) return;
+
+        const ids = selectedRows.map(row => row.dataset.recordKey);
+        const context = { doAction, ids, selectedRows, table: this };
+
+        const needsConfirm = typeof cfg.confirmActions === 'function'
+            ? cfg.confirmActions(doAction)
+            : (cfg.confirmActions || []).includes(doAction);
+
+        if (needsConfirm) {
+            const ok = await this.confirm(
+                cfg.confirmTitle || this.options.messages.areYouSure,
+                cfg.confirmMessage || this.options.messages.deleteConfirmation
+            );
+            if (!ok) return;
+        }
+
+        // Full override: caller handles everything (e.g. navigate away, trigger a download)
+        const handler = cfg.handlers && cfg.handlers[doAction];
+        if (typeof handler === 'function') {
+            return handler(context);
+        }
+
+        const button = this.elements.bulkActionButton;
+        const originalText = button.textContent;
+        button.textContent = this.options.messages.pleaseWait;
+        button.disabled = true;
+
+        const extra = typeof cfg.extraData === 'function' ? (cfg.extraData(context) || {}) : (cfg.extraData || {});
+        const data = {
+            [cfg.idField || 'ids']: ids.join(','),
+            do_action: doAction,
+            ...extra
+        };
+
+        const finish = () => {
+            button.textContent = originalText;
+            button.disabled = false;
+        };
+
+        try {
+            let result;
+            if (typeof cfg.action === 'function') {
+                result = await cfg.action(data, context);
+            } else if (typeof cfg.action === 'string') {
+                result = await FTableHttpClient.post(cfg.action, data);
+            } else {
+                throw new Error('No valid bulkActions.action provided');
+            }
+
+            this.clearListCache();
+            this.reload();
+            finish();
+            this.emit('bulkActionComplete', { data: result, doAction, ids, selectedRows });
+        } catch (error) {
+            finish();
+            this.showError(this.options.messages.serverCommunicationError);
+            this.logger.error(`Bulk action failed: ${error.message}`);
+            this.emit('bulkActionError', { error, doAction, ids, selectedRows });
+        }
     }
 
     bindKeyboardEvents() {
