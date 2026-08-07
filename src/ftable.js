@@ -3756,8 +3756,15 @@ class FTable extends FTableEventEmitter {
      *   button: '#LocationsActionsButton',// CSS selector or Element, already in the DOM
      *   idField: 'location_id',           // form field name the joined ids get posted under (default: 'ids')
      *   action: ajaxurl,                  // string URL (FTableHttpClient.post) or a function(data, ctx)
-     *   confirmActions: ['deleteLocations'],  // or a function(doAction) => bool
+     *   confirmActions: ['deleteLocations'],  // string, object or function entries, see below
      *   confirmTitle / confirmMessage: '',    // fallback confirm text
+     *
+     *   confirmActions accepts:
+     *     - an array of action names:            ['deleteLocations']
+     *     - an array of names/objects mixed:     [{ name: 'trashEvents', confirmTitle: 'x', confirmMessage: 'y' }, 'deleteEvents']
+     *     - a function:                          (doAction, ctx) => bool | { confirmTitle, confirmMessage }
+     *   When using object entries (or the function return object), confirmTitle and
+     *   confirmMessage can also be functions receiving ctx: { doAction, ids, selectedRows, table }
      *   extraData: {} | (ctx) => {},      // merged into the posted data (e.g. nonce, static action name)
      *   visibleWhen: { '#span_transferto': ['trashLocations', 'deleteLocations'] },
      *   handlers: { sendMails: (ctx) => {...} } // per-action full override, bypasses the ajax flow entirely
@@ -3804,15 +3811,10 @@ class FTable extends FTableEventEmitter {
         const ids = selectedRows.map(row => row.dataset.recordKey);
         const context = { doAction, ids, selectedRows, table: this };
 
-        const needsConfirm = typeof cfg.confirmActions === 'function'
-            ? cfg.confirmActions(doAction)
-            : (cfg.confirmActions || []).includes(doAction);
+        const confirmSpec = this._getBulkActionConfirmSpec(doAction, context);
 
-        if (needsConfirm) {
-            const ok = await this.confirm(
-                cfg.confirmTitle || this.options.messages.areYouSure,
-                cfg.confirmMessage || this.options.messages.deleteConfirmation
-            );
+        if (confirmSpec) {
+            const ok = await this.confirm(confirmSpec.title, confirmSpec.message);
             if (!ok) return;
         }
 
@@ -3859,6 +3861,35 @@ class FTable extends FTableEventEmitter {
             this.logger.error(`Bulk action failed: ${error.message}`);
             this.emit('bulkActionError', { error, doAction, ids, selectedRows });
         }
+    }
+
+    _getBulkActionConfirmSpec(doAction, context) {
+        const cfg = this.options.bulkActions;
+        let spec = null;
+
+        if (typeof cfg.confirmActions === 'function') {
+            const result = cfg.confirmActions(doAction, context);
+            if (result === true) spec = {}; // confirmation needed, but no specific title/message set
+            else if (result && typeof result === 'object') spec = result; // confirmation needed, title/message set in the result
+            else return null;
+        } else if (Array.isArray(cfg.confirmActions)) {
+            const entry = cfg.confirmActions.find(item =>
+                (typeof item === 'string' ? item : item && item.name) === doAction
+            );
+            if (entry) spec = typeof entry === 'string' ? {} : entry; // confirmation either just needed, or title/message set
+        } else {
+            return null; // no confirmation needed
+        }
+
+        if (!spec) return null; // nothing found for the action: return null, no confirmation needed
+
+        const resolve = (value, fallback) =>
+            typeof value === 'function' ? value(context) : (value !== undefined ? value : fallback);
+
+        return {
+            title: resolve(spec.confirmTitle, cfg.confirmTitle || this.options.messages.areYouSure),
+            message: resolve(spec.confirmMessage, cfg.confirmMessage || this.options.messages.deleteConfirmation)
+        };
     }
 
     bindKeyboardEvents() {
