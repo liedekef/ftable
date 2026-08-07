@@ -3871,19 +3871,19 @@ class FTable extends FTableEventEmitter {
 
         if (typeof cfg.confirmActions === 'function') {
             const result = cfg.confirmActions(doAction, context);
-            if (result === true) spec = {};
-            else if (result && typeof result === 'object') spec = result;
+            if (result === true) spec = {}; // confirmation needed, but no specific title/message set
+            else if (result && typeof result === 'object') spec = result; // confirmation needed, title/message set in the result
             else return null;
         } else if (Array.isArray(cfg.confirmActions)) {
             const entry = cfg.confirmActions.find(item =>
                 (typeof item === 'string' ? item : item && item.name) === doAction
             );
-            if (entry) spec = typeof entry === 'string' ? {} : entry;
+            if (entry) spec = typeof entry === 'string' ? {} : entry; // confirmation either just needed, or title/message set
         } else {
-            return null;
+            return null; // no confirmation needed
         }
 
-        if (!spec) return null;
+        if (!spec) return null; // nothing found for the action: return null, no confirmation needed
 
         const resolve = (value, fallback) =>
             typeof value === 'function' ? value(context) : (value !== undefined ? value : fallback);
