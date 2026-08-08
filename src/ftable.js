@@ -3851,7 +3851,6 @@ class FTable extends FTableEventEmitter {
                 throw new Error('No valid bulkActions.action provided');
             }
 
-            this.clearListCache();
             this.reload();
             finish();
             this.emit('bulkActionComplete', { data: result, doAction, ids, selectedRows });
