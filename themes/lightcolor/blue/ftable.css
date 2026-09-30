@@ -147,7 +147,6 @@ div.ftable-main-container table.ftable tbody tr > td .ftable-command-button {
   padding: 0px;
   cursor: pointer;
   border: none;
-  display: inline;
 }
 div.ftable-main-container table.ftable tbody tr > td .ftable-command-button span {
   display: none;
@@ -164,46 +163,25 @@ div.ftable-main-container table.ftable tbody tr > td.ftable-selecting-column inp
   cursor: pointer;
 }
 div.ftable-main-container table.ftable tbody tr > td .ftable-edit-command-button {
-  width: 16px;
-  height: 16px;
   background-color: transparent;
 }
 div.ftable-main-container table.ftable tbody tr > td .ftable-edit-command-button::before {
   content: "📝";
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
+  font-size: larger;
 }
 div.ftable-main-container table.ftable tbody tr > td .ftable-clone-command-button {
-  width: 16px;
-  height: 16px;
   background-color: transparent;
 }
 div.ftable-main-container table.ftable tbody tr > td .ftable-clone-command-button::before {
   content: "📋";
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
+  font-size: larger;
 }
 div.ftable-main-container table.ftable tbody tr > td .ftable-delete-command-button {
-  width: 16px;
-  height: 16px;
   background-color: transparent;
 }
 div.ftable-main-container table.ftable tbody tr > td .ftable-delete-command-button::before {
-  content: "🗑️ ";
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
+  content: "🗑️";
+  font-size: larger;
 }
 div.ftable-main-container table.ftable tbody tr.ftable-no-data-row {
   text-align: center;
