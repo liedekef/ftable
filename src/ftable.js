@@ -38,6 +38,7 @@ const FTABLE_DEFAULT_MESSAGES = {
     resetTableTooltip: 'Resets column visibility, column widths and page size to defaults. Sorting is not affected.',
     resetSearch: 'Reset',
     columnSelectButton: '⊞ Columns',
+    multiSelectSelectAll: 'Select all',
     pleaseWait: 'Please wait...'
 };
 
@@ -990,7 +991,7 @@ class FTableFormBuilder {
     parseInputAttributes(inputAttributes) {
         if (typeof inputAttributes === 'string') {
             const parsed = {};
-            const regex = /(\w+)(?:=("[^"]*"|'[^']*'|\S+))?/g;
+            const regex = /([\w-]+)(?:=("[^"]*"|'[^']*'|\S+))?/g;
             let match;
             while ((match = regex.exec(inputAttributes)) !== null) {
                 const key = match[1];
@@ -1355,431 +1356,40 @@ class FTableFormBuilder {
     }
 
     createCustomMultiSelect(fieldName, field, value, attributes, name) {
-        const optionsSource = Array.isArray(field.options) ? field.options :
-            (field.options && typeof field.options === 'object')
-                ? Object.entries(field.options).map(([k, v]) => ({ Value: k, DisplayText: v }))
-                : [];
-
-        // Support data-livesearch attribute on the virtual select as well as field.livesearch
-        const livesearch = field.livesearch ?? false;
-
-        return this._buildCustomMultiSelect({
-            containerId:    fieldName,
-            hiddenSelectId: `Edit-${fieldName}`,
-            hiddenSelectName: name,
-            extraClasses:   '',
-            containerDataFieldName: fieldName,
-            hiddenSelectAttributes: {},
-            optionsSource,
-            initialValues:  Array.isArray(value) ? value :
-                            (value ? value.toString().split(',').filter(v => v) : []),
-            placeholderText: field.placeholder || this.options.messages?.multiSelectPlaceholder || 'Click to select options...',
-            livesearch,
-            onChangeExtra:  (hiddenSelect) => {
-                hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            },
-            buildHiddenSelectOnUpdate: true, // form-mode: rebuild hidden options each time
+        return this._buildMultiSelect({
+            id:          `Edit-${fieldName}`,
+            name:        name,
+            attributes:  attributes,
+            options:     field.options,
+            selected:    Array.isArray(value) ? value :
+                         (value ? value.toString().split(',').filter(v => v) : []),
+            placeholder: field.placeholder || this.options.messages?.multiSelectPlaceholder || 'Click to select options...',
+            className:   field.inputClass || null
         });
     }
 
     /**
-     * Shared builder for both form-mode and search-mode custom multi-selects.
-     *
-     * config {
-     *   containerId              string   – used for data-field-name on the outer container
-     *   hiddenSelectId           string   – id attribute of the hidden <select>
-     *   hiddenSelectName         string   – name attribute of the hidden <select>
-     *   extraClasses             string   – extra CSS classes on the container (space-separated)
-     *   containerDataFieldName   string   – value for container's data-field-name
-     *   hiddenSelectAttributes   object   – extra attributes for the hidden <select>
-     *   optionsSource            array    – resolved array of option objects: { Value, DisplayText, Group? }
-     *   initialValues            array    – pre-selected values
-     *   placeholderText          string
-     *   livesearch               bool     – show filter input inside dropdown
-     *   onChangeExtra            fn(hiddenSelect)  – called after every selection change
-     *   buildHiddenSelectOnUpdate bool    – if true, rebuild hidden <option>s in updateDisplay (form mode);
-     *                                       if false, all options are pre-populated (search mode)
-     * }
+     * Builds a native <select multiple> (inside a wrapper div) and enhances it with
+     * SnapSelect when that library is loaded. Without SnapSelect you get the plain native select.
+     * Per-field behaviour (liveSearch, selectAllOption, maxSelections, ...) is configured through
+     * data-attributes via inputAttributes / searchAttributes, e.g. 'multiple data-live-search=true'.
+     * The SnapSelect instance is available as select._snapselect.
      */
-    _buildCustomMultiSelect(config) {
-        const {
-            hiddenSelectId,
-            hiddenSelectName,
-            extraClasses,
-            containerDataFieldName,
-            hiddenSelectAttributes,
-            optionsSource,
-            initialValues,
-            placeholderText,
-            livesearch,
-            onChangeExtra,
-            buildHiddenSelectOnUpdate,
-        } = config;
-
-        // Normalise options to a flat array of { optValue, optText, groupLabel }
-        const normaliseOptions = (src) => {
-            if (!src) return [];
-            const arr = Array.isArray(src) ? src :
-                Object.entries(src).map(([k, v]) => ({ Value: k, DisplayText: v }));
-            return arr
-                .map(o => ({
-                    optValue: (o.Value !== undefined ? o.Value :
-                               o.value !== undefined ? o.value : o),
-                    optText:  o.DisplayText || o.text || o,
-                    groupLabel: o.Group || o.group || null,
-                }))
-                .filter(o => o.optValue != null && o.optValue !== '');
-        };
-
-        const allOptions = normaliseOptions(optionsSource);
-
-        // Build a value→text lookup (used by updateDisplay)
-        const optionsMap = new Map(allOptions.map(o => [o.optValue.toString(), o.optText]));
-
-        // ---------- DOM skeleton ----------
-        const containerClasses = ['ftable-multiselect-container', ...extraClasses.split(' ').filter(Boolean)].join(' ');
-        const container = FTableDOMHelper.create('div', {
-            className: containerClasses,
-            attributes: { 'data-field-name': containerDataFieldName }
+    _buildMultiSelect({ id, name, attributes = {}, options, selected = [], placeholder, className = null }) {
+        const wrap = FTableDOMHelper.create('div', { className: 'ftable-multiselect-wrap' });
+        const select = FTableDOMHelper.create('select', {
+            id:         id,
+            name:       name,
+            multiple:   true,
+            className:  className,
+            attributes: { 'data-placeholder': placeholder, ...attributes }
         });
+        this.populateSelectOptions(select, options || [], selected);
+        wrap.appendChild(select); // SnapSelect needs the select to have a parent
 
-        const hiddenSelect = FTableDOMHelper.create('select', {
-            id:       hiddenSelectId,
-            name:     hiddenSelectName,
-            multiple: true,
-            style:    'display: none;',
-            attributes: hiddenSelectAttributes
-        });
-        container.appendChild(hiddenSelect);
-        container.hiddenSelect = hiddenSelect;
-
-        const display = FTableDOMHelper.create('div', {
-            className: 'ftable-multiselect-display',
-            parent: container,
-            attributes: { tabindex: '0' }
-        });
-
-        const selectedDisplay = FTableDOMHelper.create('div', {
-            className: 'ftable-multiselect-selected',
-            parent: display
-        });
-
-        const placeholderEl = FTableDOMHelper.create('span', {
-            className: 'ftable-multiselect-placeholder',
-            textContent: placeholderText,
-            parent: selectedDisplay
-        });
-
-        FTableDOMHelper.create('button', {
-            type: 'button',
-            className: 'ftable-multiselect-toggle',
-            innerHTML: '▼',
-            parent: display,
-            attributes: { tabindex: '-1' }
-        });
-
-        // ---------- State ----------
-        let dropdown        = null;
-        let dropdownOverlay = null;
-        const selectedValues = new Set(initialValues.map(v => v.toString()));
-        const checkboxMap    = new Map(); // value → checkbox element
-
-        // In search mode, pre-populate the hidden select once with all options
-        if (!buildHiddenSelectOnUpdate) {
-            allOptions.forEach(({ optValue, optText }) => {
-                FTableDOMHelper.create('option', {
-                    value: optValue,
-                    textContent: optText,
-                    parent: hiddenSelect
-                });
-            });
-        }
-
-        // ---------- updateDisplay ----------
-        const updateDisplay = () => {
-            selectedDisplay.innerHTML = '';
-
-            if (buildHiddenSelectOnUpdate) {
-                // Form mode: rebuild hidden <option>s to reflect current selection
-                hiddenSelect.innerHTML = '';
-                selectedValues.forEach(val => {
-                    const text = optionsMap.get(val) ?? val;
-                    FTableDOMHelper.create('option', {
-                        value: val,
-                        textContent: text,
-                        selected: true,
-                        parent: hiddenSelect
-                    });
-                });
-            } else {
-                // Search mode: just flip selected state on existing options
-                Array.from(hiddenSelect.options).forEach(opt => {
-                    opt.selected = selectedValues.has(opt.value);
-                });
-            }
-
-            if (selectedValues.size === 0) {
-                placeholderEl.textContent = placeholderText;
-                selectedDisplay.appendChild(placeholderEl);
-            } else {
-                selectedValues.forEach(val => {
-                    const tag = FTableDOMHelper.create('span', {
-                        className: 'ftable-multiselect-tag',
-                        parent: selectedDisplay
-                    });
-                    FTableDOMHelper.create('span', {
-                        className: 'ftable-multiselect-tag-text',
-                        textContent: optionsMap.get(val) || val,
-                        parent: tag
-                    });
-                    const removeBtn = FTableDOMHelper.create('span', {
-                        className: 'ftable-multiselect-tag-remove',
-                        innerHTML: '×',
-                        parent: tag
-                    });
-                    removeBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        selectedValues.delete(val);
-                        const cb = checkboxMap.get(val);
-                        if (cb) cb.checked = false;
-                        updateDisplay();
-                        if (onChangeExtra) onChangeExtra(hiddenSelect);
-                    });
-                });
-            }
-
-            if (onChangeExtra) onChangeExtra(hiddenSelect);
-        };
-
-        // ---------- Dropdown helpers ----------
-        const closeDropdown = () => {
-            display.focus();
-            if (dropdown)        { dropdown.remove();        dropdown = null; }
-            if (dropdownOverlay) { dropdownOverlay.remove(); dropdownOverlay = null; }
-            if (container._cleanupHandlers) {
-                container._cleanupHandlers();
-                container._cleanupHandlers = null;
-            }
-        };
-
-        const positionDropdown = () => {
-            if (!dropdown) return;
-            const rect       = display.getBoundingClientRect();
-            const scrollTop  = window.pageYOffset  || document.documentElement.scrollTop;
-            const scrollLeft = window.pageXOffset  || document.documentElement.scrollLeft;
-            let left = rect.left + scrollLeft;
-            let top  = rect.bottom + scrollTop + 4;
-
-            Object.assign(dropdown.style, {
-                position:   'absolute',
-                left:       `${left}px`,
-                top:        `${top}px`,
-                width:      `${rect.width}px`,
-                minWidth:   'fit-content',
-                boxSizing:  'border-box',
-                zIndex:     '10000',
-            });
-
-            const ddRect = dropdown.getBoundingClientRect();
-            if (ddRect.right > window.innerWidth) {
-                left = Math.max(10, window.innerWidth - ddRect.width - 10);
-                dropdown.style.left = `${left}px`;
-            }
-        };
-
-        // Render options (or a filtered subset) into the open dropdown
-        const renderDropdownOptions = (filterText = '') => {
-            if (!dropdown) return;
-            // Remove existing option rows (but keep the search bar if present)
-            Array.from(dropdown.querySelectorAll('.ftable-multiselect-option, .ftable-multiselect-optgroup'))
-                 .forEach(el => el.remove());
-
-            const lc = filterText.toLowerCase();
-            const visible = filterText
-                ? allOptions.filter(o => o.optText.toLowerCase().includes(lc))
-                : allOptions;
-
-            // Group rendering
-            const usedGroups = new Set();
-            let currentOptgroup = null;
-
-            visible.forEach(({ optValue, optText, groupLabel }) => {
-                if (groupLabel && groupLabel !== usedGroups[usedGroups.size - 1]) {
-                    if (!usedGroups.has(groupLabel)) {
-                        usedGroups.add(groupLabel);
-                        currentOptgroup = FTableDOMHelper.create('div', {
-                            className: 'ftable-multiselect-optgroup',
-                            textContent: groupLabel,
-                            parent: dropdown
-                        });
-                    }
-                } else if (!groupLabel) {
-                    currentOptgroup = null;
-                }
-
-                const optionDiv = FTableDOMHelper.create('div', {
-                    className: 'ftable-multiselect-option',
-                    parent: dropdown
-                });
-
-                const checkbox = FTableDOMHelper.create('input', {
-                    type: 'checkbox',
-                    className: 'ftable-multiselect-checkbox',
-                    checked: selectedValues.has(optValue.toString()),
-                    parent: optionDiv
-                });
-
-                checkboxMap.set(optValue.toString(), checkbox);
-
-                FTableDOMHelper.create('label', {
-                    className: 'ftable-multiselect-label',
-                    textContent: optText,
-                    parent: optionDiv
-                });
-
-                optionDiv.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const key = optValue.toString();
-                    if (selectedValues.has(key)) {
-                        selectedValues.delete(key);
-                        checkbox.checked = false;
-                    } else {
-                        selectedValues.add(key);
-                        checkbox.checked = true;
-                    }
-                    updateDisplay();
-                });
-            });
-        };
-
-        // ---------- toggleDropdown ----------
-        const toggleDropdown = (e) => {
-            if (e) e.stopPropagation();
-
-            if (dropdown) {
-                closeDropdown();
-                return;
-            }
-
-            // Close any other open dropdowns
-            document.querySelectorAll('.ftable-multiselect-dropdown').forEach(dd => dd.remove());
-            document.querySelectorAll('.ftable-multiselect-overlay').forEach(ov => ov.remove());
-
-            dropdownOverlay = FTableDOMHelper.create('div', {
-                className: 'ftable-multiselect-overlay',
-                parent: document.body
-            });
-
-            dropdown = FTableDOMHelper.create('div', {
-                className: 'ftable-multiselect-dropdown',
-                parent: document.body,
-                attributes: { tabindex: '-1', role: 'listbox', 'aria-multiselectable': 'true' }
-            });
-
-            // Optional live-search bar
-            if (livesearch) {
-                const searchWrap = FTableDOMHelper.create('div', {
-                    className: 'ftable-multiselect-livesearch-wrap',
-                    parent: dropdown
-                });
-                const searchInput = FTableDOMHelper.create('input', {
-                    type: 'search',
-                    className: 'ftable-multiselect-livesearch',
-                    placeholder: 'Search...',
-                    parent: searchWrap,
-                    attributes: { autocomplete: 'off' }
-                });
-                searchInput.addEventListener('input', () => {
-                    renderDropdownOptions(searchInput.value);
-                });
-                searchInput.addEventListener('click', e => e.stopPropagation());
-                // Focus search input automatically
-                setTimeout(() => searchInput.focus(), 0);
-            }
-
-            renderDropdownOptions();
-            positionDropdown();
-
-            if (!livesearch) dropdown.focus();
-
-            // Keyboard navigation
-            dropdown.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    closeDropdown();
-                } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    const checkboxes = Array.from(dropdown.querySelectorAll('.ftable-multiselect-checkbox'));
-                    const currentIndex = checkboxes.indexOf(document.activeElement);
-                    const nextIndex = e.key === 'ArrowDown'
-                        ? (currentIndex < checkboxes.length - 1 ? currentIndex + 1 : 0)
-                        : (currentIndex > 0 ? currentIndex - 1 : checkboxes.length - 1);
-                    checkboxes[nextIndex]?.focus();
-                } else if (e.key === ' ' || e.key === 'Enter') {
-                    e.preventDefault();
-                    if (document.activeElement.classList.contains('ftable-multiselect-checkbox')) {
-                        document.activeElement.click();
-                    }
-                }
-            });
-
-            dropdownOverlay.addEventListener('click', (event) => {
-                if (event.target === dropdownOverlay) closeDropdown();
-            });
-
-            // Reposition on scroll / resize
-            const repositionHandler = () => positionDropdown();
-            const scrollHandler = (e) => {
-                if (dropdown && dropdown.contains(e.target)) return;
-                positionDropdown();
-            };
-            const resizeObserver = new ResizeObserver(() => positionDropdown());
-            window.addEventListener('scroll', scrollHandler, true);
-            window.addEventListener('resize', repositionHandler);
-            resizeObserver.observe(selectedDisplay);
-
-            container._cleanupHandlers = () => {
-                window.removeEventListener('scroll', scrollHandler, true);
-                window.removeEventListener('resize', repositionHandler);
-                resizeObserver.disconnect();
-            };
-        };
-
-        display.addEventListener('click', toggleDropdown);
-        display.querySelector('.ftable-multiselect-toggle').addEventListener('click', toggleDropdown);
-        display.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowDown' || e.key === 'Enter') {
-                e.preventDefault();
-                toggleDropdown();
-            }
-        });
-
-        // Reset method (used by search toolbar)
-        container.resetMultiSelect = () => {
-            selectedValues.clear();
-            checkboxMap.forEach(cb => { cb.checked = false; });
-            closeDropdown();
-            updateDisplay();
-        };
-
-        // Cleanup when container is removed from DOM
-        const domObserver = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.removedNodes.forEach((node) => {
-                    if (node === container || (node.contains && node.contains(container))) {
-                        closeDropdown();
-                        domObserver.disconnect();
-                    }
-                });
-            });
-        });
-        setTimeout(() => {
-            if (container.parentNode) {
-                domObserver.observe(container.parentNode, { childList: true, subtree: true });
-            }
-        }, 0);
-
-        updateDisplay();
-        return container;
+        // options must be in place before this: SnapSelect's options observer calls clear() on changes
+        if (typeof SnapSelectClass !== 'undefined') new SnapSelectClass(select);
+        return wrap;
     }
 
     createRadioGroup(fieldName, field, value) {
@@ -1887,6 +1497,11 @@ class FTableFormBuilder {
     populateSelectOptions(select, options, selectedValue) {
         select.innerHTML = ''; // Clear existing options
 
+        // selectedValue can be a single value or (for <select multiple>) an array of values
+        const isSelected = (v) => Array.isArray(selectedValue)
+            ? selectedValue.some(s => s == v)
+            : v == selectedValue;
+
         if (Array.isArray(options)) {
             // Group options by their Group property (if any)
             const groups = new Map(); // groupLabel -> [options]
@@ -1909,7 +1524,7 @@ class FTableFormBuilder {
                 const optionElement = FTableDOMHelper.create('option', {
                     value: value,
                     textContent: option.DisplayText || option.text || option,
-                    selected: value == selectedValue,
+                    selected: isSelected(value),
                     parent: parent
                 });
                 if (option.disabled) {
@@ -1939,7 +1554,7 @@ class FTableFormBuilder {
                 FTableDOMHelper.create('option', {
                     value: key,
                     textContent: text,
-                    selected: key == selectedValue,
+                    selected: isSelected(key),
                     parent: select
                 });
             });
@@ -2771,9 +2386,9 @@ class FTable extends FTableEventEmitter {
                 if (input) {
                     // Handle event listeners - check if it's a custom multiselect container
                     let targetElement = input;
-                    if (input.classList && input.classList.contains('ftable-multiselect-container') && input.hiddenSelect) {
-                        // It's a custom multiselect - attach listener to the hidden select
-                        targetElement = input.hiddenSelect;
+                    if (input.classList && input.classList.contains('ftable-multiselect-wrap')) {
+                        // Multiselect wrapper (optionally enhanced by SnapSelect) - listen on the real select
+                        targetElement = input.querySelector('select');
                     } else if (input._fdatepicker) {
                         // FDatepicker: listen on the auto-created hidden alt field
                         const hiddenField = document.getElementById(input.id + '-fdp-alt');
@@ -2915,24 +2530,15 @@ class FTable extends FTableEventEmitter {
     }
 
     createCustomMultiSelectForSearch(fieldSearchName, fieldName, field, optionsSource, attributes) {
-        const livesearch = field.livesearch ?? false;
-
-        return this.formBuilder._buildCustomMultiSelect({
-            hiddenSelectId:            fieldSearchName,
-            hiddenSelectName:          attributes['data-field-name'] || fieldSearchName,
-            extraClasses:              'ftable-multiselect-search ftable-toolbarsearch',
-            containerDataFieldName:    attributes['data-field-name'] || fieldSearchName,
-            hiddenSelectAttributes:    attributes,
-            optionsSource:             optionsSource,
-            initialValues:             [],
-            placeholderText:           field.searchPlaceholder || field.placeholder
-                                           || this.options.messages?.multiSelectPlaceholder
-                                           || 'Click to select options...',
-            livesearch,
-            onChangeExtra:             (hiddenSelect) => {
-                hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            },
-            buildHiddenSelectOnUpdate: false, // search mode: options pre-populated
+        return this.formBuilder._buildMultiSelect({
+            id:          fieldSearchName,
+            name:        attributes['data-field-name'] || fieldSearchName,
+            attributes:  attributes,
+            options:     optionsSource,
+            placeholder: field.searchPlaceholder || field.placeholder
+                         || this.options.messages?.multiSelectPlaceholder
+                         || 'Click to select options...',
+            className:   'ftable-toolbarsearch'
         });
     }
     async createDatalistForSearch(fieldName, field) {
@@ -3011,21 +2617,16 @@ class FTable extends FTableEventEmitter {
         // Clear input values in the search row
         const searchInputs = this.elements.table.querySelectorAll('.ftable-toolbarsearch');
         searchInputs.forEach(input => {
-            if (input.tagName === 'SELECT') {
-                input.selectedIndex = 0; // Select the first (empty) option
+            if (input._snapselect) {
+                input._snapselect.clear(); // fires change, the pending debounced search load is cancelled below
+            } else if (input.tagName === 'SELECT') {
+                // multiple: deselect everything, single: select the first (empty) option
+                input.selectedIndex = input.multiple ? -1 : 0;
             } else {
                 input.value = '';
                 if (input._fdatepicker) {
                     input._fdatepicker.clear();
                 }
-            }
-        });
-
-        // Clear custom multiselect containers
-        const multiSelectContainers = this.elements.table.querySelectorAll('.ftable-multiselect-container');
-        multiSelectContainers.forEach(container => {
-            if (typeof container.resetMultiSelect === 'function') {
-                container.resetMultiSelect();
             }
         });
 
