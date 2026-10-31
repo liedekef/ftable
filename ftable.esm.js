@@ -2816,7 +2816,12 @@ class FTable extends FTableEventEmitter {
             if (Array.isArray(state.sorting)) {
                 this.state.sorting = state.sorting;
             }
-            if ((state.pageSize && this.options.pageSizes.includes(state.pageSize)) || state.pageSize == 0) {
+            const sizes = this.options.pageSizes;
+            // 0 ("all") is only valid if the list contains a non-numeric entry
+            const hasAll = sizes.some(s => isNaN(parseInt(s)));
+            if (state.pageSize === 0) {
+                if (hasAll) this.state.pageSize = 0;
+            } else if (sizes.includes(state.pageSize)) {
                 this.state.pageSize = state.pageSize;
             }
         } catch (error) {
