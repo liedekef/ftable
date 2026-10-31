@@ -1936,7 +1936,7 @@ class FTable extends FTableEventEmitter {
         });
 
         select.addEventListener('change', (e) => {
-            this.changePageSize(parseInt(e.target.value));
+            this.changePageSize(parseInt(e.target.value) || 0);
         });
     }
 
@@ -2792,7 +2792,7 @@ class FTable extends FTableEventEmitter {
                 const field = this.options.fields[fieldName];
                 if (field && !field.action) {
                     if (config.width) field.width = config.width;
-                    if (config.visibility) field.visibility = config.visibility;
+                    if (config.visibility && field.visibility !== 'fixed') field.visibility = config.visibility;
                 }
             });
         } catch (error) {
@@ -3557,7 +3557,7 @@ class FTable extends FTableEventEmitter {
         const params = {};
         
         if (this.options.paging) {
-            if (!this.state.pageSize) {
+            if (this.state.pageSize === null || this.state.pageSize === undefined) {
                 this.state.pageSize = this.options.pageSize;
             }
             params.jtStartIndex = (this.state.currentPage - 1) * this.state.pageSize;
