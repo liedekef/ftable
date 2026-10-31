@@ -1931,7 +1931,7 @@ class FTable extends FTableEventEmitter {
                 parent: select
             });
 
-            if (size === this.state.pageSize) {
+            if (size === this.state.pageSize || (this.state.pageSize === 0 && isNaN(parseInt(size))) ) {
                 option.selected = true;
             }
         });
@@ -2781,6 +2781,11 @@ class FTable extends FTableEventEmitter {
         this.userPrefs.set('table-state', JSON.stringify(state));
     }
 
+    getTotalPages() {
+        if (!this.state.pageSize) return 1;   // 0 = all records on one page
+        return Math.max(1, Math.ceil(this.state.totalRecordCount / this.state.pageSize));
+    }
+
     loadColumnSettings() {
         if (!this.options.saveUserPreferences) return;
         
@@ -2812,7 +2817,7 @@ class FTable extends FTableEventEmitter {
             if (Array.isArray(state.sorting)) {
                 this.state.sorting = state.sorting;
             }
-            if (state.pageSize && this.options.pageSizes.includes(state.pageSize)) {
+            if ((state.pageSize && this.options.pageSizes.includes(state.pageSize)) || state.pageSize == 0) {
                 this.state.pageSize = state.pageSize;
             }
         } catch (error) {
@@ -3671,7 +3676,7 @@ class FTable extends FTableEventEmitter {
         // later page. Fall back to page 1 if, for whatever reason, the current page is still valid
         // yet no records were returned.
         if (this.options.paging && this.state.records.length === 0 && this.state.totalRecordCount > 0) {
-            const totalPages = Math.max(1, Math.ceil(this.state.totalRecordCount / this.state.pageSize));
+            const totalPages = this.getTotalPages();
             this.state.currentPage = this.state.currentPage > totalPages ? totalPages : 1;
             // processLoadedData() runs synchronously from within load()'s try block, so
             // this.state.isLoading is still true here — calling this.load() directly would
@@ -4561,8 +4566,9 @@ class FTable extends FTableEventEmitter {
         }
 
         // Update page info
-        const startRecord = (this.state.currentPage - 1) * this.state.pageSize + 1;
-        const endRecord = Math.min(this.state.currentPage * this.state.pageSize, this.state.totalRecordCount);
+        const size = this.state.pageSize || this.state.totalRecordCount; // covers the pageSize=0 case too
+        const startRecord = (this.state.currentPage - 1) * size + 1;
+        const endRecord = Math.min(this.state.currentPage * size, this.state.totalRecordCount);
         
         const pagingInfoMsg = this.options.messages.pagingInfo || 'Showing {0}-{1} of {2}';
         // Format with placeholders
@@ -4581,7 +4587,7 @@ class FTable extends FTableEventEmitter {
         
         this.elements.pagingListArea.innerHTML = '';
         
-        const totalPages = Math.ceil(this.state.totalRecordCount / this.state.pageSize);
+        const totalPages = this.getTotalPages();
         if (totalPages <= 1) return;
 
         // First and Previous buttons
@@ -4625,7 +4631,7 @@ class FTable extends FTableEventEmitter {
             return;
         }
 
-        const totalPages = Math.ceil(this.state.totalRecordCount / this.state.pageSize);
+        const totalPages = this.getTotalPages();
         if (totalPages <= 1) {
             this.elements.pagingGotoArea.style.display = 'none';
             this.elements.pagingGotoArea.innerHTML = '';
@@ -4728,7 +4734,7 @@ class FTable extends FTableEventEmitter {
     }
 
     changePage(pageNumber) {
-        const totalPages = Math.ceil(this.state.totalRecordCount / this.state.pageSize);
+        const totalPages = this.getTotalPages();
         pageNumber = Math.max(1, Math.min(pageNumber, totalPages));
         
         if (pageNumber === this.state.currentPage) return;
