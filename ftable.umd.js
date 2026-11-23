@@ -1327,33 +1327,29 @@ class FTableFormBuilder {
         // Standard single select
         attributes.name = name;
 
+        let options = field.options;
+        if (options && field.placeholder !== undefined) {
+            const firstValue = Array.isArray(options)
+                ? (options[0]?.Value ?? options[0]?.value ?? options[0])
+                : Object.keys(options)[0];
+            if (firstValue !== '' && firstValue !== undefined) {
+                options = Array.isArray(options)
+                    ? [{ Value: '', DisplayText: field.placeholder }, ...options]
+                    : { '': field.placeholder, ...options };
+            }
+        }
+
+        if (this._wantsSnapSelect(field.inputClass)) {
+            return this.createCustomSelect(fieldName, field, value, attributes, options);
+        }
+
         const select = FTableDOMHelper.create('select', {
             attributes: attributes,
             name: fieldName,
             id: `Edit-${fieldName}`,
             className: field.inputClass || null
         });
-
-        if (field.options) {
-            // If a placeholder is defined and the options don't already start with an empty
-            // option, prepend one so that populateSelectOptions handles selected-state correctly.
-            let options = field.options;
-            if (field.placeholder !== undefined) {
-                const firstValue = Array.isArray(options)
-                    ? (options[0]?.Value ?? options[0]?.value ?? options[0])
-                    : Object.keys(options)[0];
-                if (firstValue !== '' && firstValue !== undefined) {
-                    const emptyOption = Array.isArray(options)
-                        ? { Value: '', DisplayText: field.placeholder }
-                        : { '': field.placeholder };
-                    options = Array.isArray(options)
-                        ? [emptyOption, ...options]
-                        : Object.fromEntries([['', field.placeholder], ...Object.entries(options)]);
-                }
-            }
-            this.populateSelectOptions(select, options, value);
-        }
-
+        if (options) this.populateSelectOptions(select, options, value);
         return select;
     }
 
@@ -1366,7 +1362,21 @@ class FTableFormBuilder {
             selected:    Array.isArray(value) ? value :
                          (value ? value.toString().split(',').filter(v => v) : []),
             placeholder: field.placeholder || this.options.messages?.multiSelectPlaceholder || 'Click to select options...',
-            className:   field.inputClass || null
+            className:   field.inputClass || null,
+            multiple:    true
+        });
+    }
+
+    createCustomSelect(fieldName, field, value, attributes, options) {
+        return this._buildMultiSelect({
+            id:          `Edit-${fieldName}`,
+            name:        fieldName,
+            attributes:  attributes,
+            options:     options || [],
+            selected:    value,
+            placeholder: field.placeholder,
+            className:   field.inputClass || null,
+            multiple:    false
         });
     }
 
@@ -1377,14 +1387,14 @@ class FTableFormBuilder {
      * data-attributes via inputAttributes / searchAttributes, e.g. 'multiple data-live-search=true'.
      * The SnapSelect instance is available as select._snapselect.
      */
-    _buildMultiSelect({ id, name, attributes = {}, options, selected = [], placeholder, className = null }) {
+    _buildMultiSelect({ id, name, attributes = {}, options, selected = [], placeholder, className = null, multiple = true }) {
         const wrap = FTableDOMHelper.create('div', { className: 'ftable-multiselect-wrap' });
         const select = FTableDOMHelper.create('select', {
             id:         id,
             name:       name,
-            multiple:   true,
+            multiple:   multiple,
             className:  className,
-            attributes: { 'data-placeholder': placeholder, ...attributes }
+            attributes: { ...(placeholder ? { 'data-placeholder': placeholder } : {}), ...attributes }
         });
         this.populateSelectOptions(select, options || [], selected);
         wrap.appendChild(select); // SnapSelect needs the select to have a parent
@@ -1392,6 +1402,10 @@ class FTableFormBuilder {
         // options must be in place before this: SnapSelect's options observer calls clear() on changes
         if (typeof SnapSelectClass !== 'undefined') new SnapSelectClass(select);
         return wrap;
+    }
+
+    _wantsSnapSelect(cls) {
+        return typeof SnapSelectClass !== 'undefined' && /(^|\s)snapselect(\s|$)/.test(cls || '');
     }
 
     createRadioGroup(fieldName, field, value) {
@@ -2487,6 +2501,9 @@ class FTable extends FTableEventEmitter {
                 attributes
             );
         }
+        if (this.formBuilder._wantsSnapSelect(field.searchClass)) {
+            return this.createCustomSelectForSearch(fieldSearchName, fieldName, field, optionsSource, attributes);
+        }
 
         // Standard single select
         const select = FTableDOMHelper.create('select', {
@@ -2540,9 +2557,23 @@ class FTable extends FTableEventEmitter {
             placeholder: field.searchPlaceholder || field.placeholder
                          || this.options.messages?.multiSelectPlaceholder
                          || 'Click to select options...',
-            className:   'ftable-toolbarsearch'
+            className:   ['ftable-toolbarsearch', field.searchClass].filter(Boolean).join(' '),
+            multiple:    true
         });
     }
+
+    createCustomSelectForSearch(fieldSearchName, fieldName, field, optionsSource, attributes) {
+        return this.formBuilder._buildMultiSelect({
+            id:         fieldSearchName,
+            name:       attributes['data-field-name'] || fieldSearchName,
+            attributes: attributes,
+            options:    optionsSource,
+            selected:   '',
+            className:  ['ftable-toolbarsearch', field.searchClass].filter(Boolean).join(' '),
+            multiple:   false
+        });
+    }
+
     async createDatalistForSearch(fieldName, field) {
         const fieldSearchName = 'ftable-toolbarsearch-' + fieldName;
 
