@@ -2556,7 +2556,7 @@ class FTable extends FTableEventEmitter {
             placeholder: field.searchPlaceholder || field.placeholder
                          || this.options.messages?.multiSelectPlaceholder
                          || 'Click to select options...',
-            className:   ['ftable-toolbarsearch', field.searchClass].filter(Boolean).join(' '),
+            className:   'ftable-toolbarsearch',
             multiple:    true
         });
     }
@@ -2567,8 +2567,10 @@ class FTable extends FTableEventEmitter {
             name:       attributes['data-field-name'] || fieldSearchName,
             attributes: attributes,
             options:    optionsSource,
-            selected:   '',
-            className:  ['ftable-toolbarsearch', field.searchClass].filter(Boolean).join(' '),
+            placeholder: field.searchPlaceholder || field.placeholder
+                         || this.options.messages?.selectPlaceholder
+                         || 'Select ...',
+            className:  'ftable-toolbarsearch',
             multiple:   false
         });
     }
