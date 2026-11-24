@@ -1325,6 +1325,10 @@ class FTableFormBuilder {
         // Standard single select
         attributes.name = name;
 
+        if (this._wantsSnapSelect(field.inputClass)) {
+            return this.createCustomSelect(fieldName, field, value, attributes, field.options);
+        }
+
         let options = field.options;
         if (options && field.placeholder !== undefined) {
             const firstValue = Array.isArray(options)
@@ -1335,10 +1339,6 @@ class FTableFormBuilder {
                     ? [{ Value: '', DisplayText: field.placeholder }, ...options]
                     : { '': field.placeholder, ...options };
             }
-        }
-
-        if (this._wantsSnapSelect(field.inputClass)) {
-            return this.createCustomSelect(fieldName, field, value, attributes, options);
         }
 
         const select = FTableDOMHelper.create('select', {
@@ -1535,15 +1535,17 @@ class FTableFormBuilder {
                 const value = option.Value !== undefined ? option.Value :
                     option.value !== undefined ? option.value :
                     option; // fallback for string
+                const sel = isSelected(value);
                 const optionElement = FTableDOMHelper.create('option', {
                     value: value,
                     textContent: option.DisplayText || option.text || option,
-                    selected: isSelected(value),
+                    selected: sel,
                     parent: parent
                 });
                 if (option.disabled) {
                     optionElement.disabled = true;
                 }
+                if (sel) optionElement.defaultSelected = true;
                 if (option.Data && typeof option.Data === 'object') {
                     Object.entries(option.Data).forEach(([key, dataValue]) => {
                         optionElement.setAttribute(`data-${key}`, dataValue);
@@ -1565,12 +1567,14 @@ class FTableFormBuilder {
 
         } else if (typeof options === 'object') {
             Object.entries(options).forEach(([key, text]) => {
-                FTableDOMHelper.create('option', {
+                const sel = isSelected(key);
+                const optionElement = FTableDOMHelper.create('option', {
                     value: key,
                     textContent: text,
-                    selected: isSelected(key),
+                    selected: sel,
                     parent: select
                 });
+                if (sel) optionElement.defaultSelected = true;
             });
         }
     }
